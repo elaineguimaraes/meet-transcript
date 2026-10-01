@@ -37,7 +37,7 @@ Extraia o `.zip` e dê dois cliques em **`Meet Transcript.exe`**. Não precisa d
 
 1. Clique em **Escolher...** e selecione a pasta com as gravações.
 2. Clique nos arquivos para marcá-los (tudo começa desmarcado). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
-3. Em **Idioma**, deixe **Automático** ou fixe o idioma da reunião. Atenção: fixar o idioma errado faz o modelo *traduzir* a fala.
+3. Em **Idioma da fala**, deixe **Automático** ou fixe o idioma da reunião. Atenção: fixar o idioma errado faz o modelo *traduzir* a fala.
 4. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos e o que estava em andamento é descartado.
 
 ## Versões
@@ -51,6 +51,7 @@ Extraia o `.zip` e dê dois cliques em **`Meet Transcript.exe`**. Não precisa d
 
 - **Privacidade**: usa o [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (Whisper da OpenAI reimplementado em CTranslate2) direto na máquina.
 - **GPU com fallback automático**: confere se há GPU NVIDIA e bibliotecas CUDA, valida com um teste real (modelo `large-v3-turbo`) e, se algo falhar, cai sozinho para a CPU (modelo `medium`).
+- **Interface em português e inglês**: segue o idioma do Windows e pode ser trocada na hora pelo seletor no canto da janela; a escolha fica salva.
 - **Interface simples** em Tkinter: escolher a pasta, filtrar por nome, marcar os arquivos, ver o tamanho total selecionado, acompanhar o progresso e cancelar a qualquer momento. A transcrição roda em uma thread separada, então a janela não trava.
 - **Retomável**: a lista mostra o que já foi transcrito. A saída é gravada em `.parcial` e só é renomeada no final, então uma execução interrompida nunca deixa uma transcrição pela metade passando por pronta.
 - **Rápido**: filtro de voz (VAD) descarta silêncio. Numa GTX 1650 (4 GB), ~2 h de reunião foram transcritas em ~13 min.
@@ -111,8 +112,9 @@ meet-transcript/
 └── transcricao-simples/
     ├── app.py                     # interface gráfica (Tkinter)
     ├── transcrever.py             # lógica de transcrição + linha de comando
+    ├── textos.py                  # textos da interface em português e inglês
     ├── meet_transcript.spec       # receita do PyInstaller
-    ├── LEIA-ME.txt                # guia rápido que vai dentro do .zip
+    ├── LEIA-ME.txt / README.txt   # guia rápido que vai dentro do .zip (PT/EN)
     ├── instalar.bat / iniciar.bat
     ├── requirements.txt
     └── requirements-gpu.txt       # CUDA opcional

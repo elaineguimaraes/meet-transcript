@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import queue
 import subprocess
@@ -13,14 +14,44 @@ from pathlib import Path
 from tkinter import filedialog, font, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
+import textos
+from textos import t
+
 CAIXA = {True: "☑", False: "☐"}
+IDIOMAS_FALA = ("auto", "pt", "en", "es")  # opções do seletor; "auto" = detectar
+INTERFACES = ("pt", "en")
 
 
 def tamanho_legivel(n_bytes: float) -> str:
     mb = n_bytes / 1024**2
     if mb >= 1024:
-        return f"{mb / 1024:.1f} GB".replace(".", ",")
+        texto = f"{mb / 1024:.1f} GB"
+        return texto.replace(".", ",") if textos.idioma_atual() == "pt" else texto
     return f"{mb:.0f} MB" if mb >= 1 or n_bytes == 0 else "< 1 MB"
+
+
+# ------------------------------------------------- preferências do usuário
+
+
+def _arquivo_preferencias() -> Path:
+    base = os.environ.get("APPDATA") or Path.home() / ".config"
+    return Path(base) / "MeetTranscript" / "preferencias.json"
+
+
+def ler_preferencias() -> dict:
+    try:
+        return json.loads(_arquivo_preferencias().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def salvar_preferencias(preferencias: dict) -> None:
+    try:
+        arquivo = _arquivo_preferencias()
+        arquivo.parent.mkdir(parents=True, exist_ok=True)
+        arquivo.write_text(json.dumps(preferencias), encoding="utf-8")
+    except OSError:
+        pass  # não lembrar a preferência não impede o uso
 
 
 class App(tk.Tk):
@@ -35,7 +66,6 @@ class App(tk.Tk):
         self.cancelar = threading.Event()
         self.pasta = tk.StringVar()
         self.filtro = tk.StringVar()
-        self.idioma = tk.StringVar(value="Automático")
         self.filtro.trace_add("write", lambda *_: self._mostrar_lista())
 
         # Arquivos da pasta. As chaves dos conjuntos/dicionários são str(caminho),
@@ -46,7 +76,13 @@ class App(tk.Tk):
         self.feitos: set[str] = set()           # já têm .txt
         self.marcados: set[str] = set()
 
+        # Textos que dependem do idioma da interface: (widget, chave) e o status atual,
+        # guardados para poder redesenhar tudo quando o idioma é trocado.
+        self._rotulos: list[tuple[ttk.Widget, str]] = []
+        self._estado: tuple[str, dict] = ("preparando", {})
+
         self._montar_tela()
+        self._aplicar_textos()
         self.protocol("WM_DELETE_WINDOW", self._fechar)
 
         # Importar o faster-whisper leva alguns segundos; a janela abre antes.
@@ -59,6 +95,10 @@ class App(tk.Tk):
 
     # ------------------------------------------------------------------ tela
 
+    def _rotulo(self, widget: ttk.Widget, chave: str) -> ttk.Widget:
+        self._rotulos.append((widget, chave))
+        return widget
+
     def _montar_tela(self) -> None:
         # Altura de linha proporcional à fonte, para não cortar texto com escala de tela.
         altura = font.nametofont("TkDefaultFont").metrics("linespace") + 6
@@ -70,21 +110,28 @@ class App(tk.Tk):
         raiz.rowconfigure(4, weight=3)
         raiz.rowconfigure(8, weight=1)
 
-        ttk.Label(raiz, text="Pasta com as gravações:").grid(row=0, column=0, columnspan=2, sticky="w")
+        self._rotulo(ttk.Label(raiz), "pasta").grid(row=0, column=0, sticky="sw")
+        self.combo_interface = ttk.Combobox(
+            raiz, state="readonly", width=10, values=[textos.NOMES[i] for i in INTERFACES]
+        )
+        self.combo_interface.current(INTERFACES.index(textos.idioma_atual()))
+        self.combo_interface.bind("<<ComboboxSelected>>", lambda _: self._trocar_interface())
+        self.combo_interface.grid(row=0, column=1, sticky="e", pady=(0, 4))
+
         entrada = ttk.Entry(raiz, textvariable=self.pasta)
         entrada.grid(row=1, column=0, sticky="ew", pady=(2, 2))
         entrada.bind("<Return>", lambda _: self._carregar_lista())
-        self.botao_escolher = ttk.Button(raiz, text="Escolher...", command=self._escolher_pasta)
-        self.botao_escolher.grid(row=1, column=1, padx=(6, 0), pady=(2, 2))
+        self.botao_escolher = self._rotulo(ttk.Button(raiz, command=self._escolher_pasta), "escolher")
+        self.botao_escolher.grid(row=1, column=1, padx=(6, 0), pady=(2, 2), sticky="ew")
         self.formatos = ttk.Label(raiz, text="", foreground="#666666")
         self.formatos.grid(row=2, column=0, columnspan=2, sticky="w", pady=(0, 8))
 
         busca = ttk.Frame(raiz)
         busca.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
         busca.columnconfigure(1, weight=1)
-        ttk.Label(busca, text="Filtrar por nome:").grid(row=0, column=0, padx=(0, 6))
+        self._rotulo(ttk.Label(busca), "filtrar").grid(row=0, column=0, padx=(0, 6))
         ttk.Entry(busca, textvariable=self.filtro).grid(row=0, column=1, sticky="ew")
-        ttk.Button(busca, text="Limpar", command=lambda: self.filtro.set("")).grid(
+        self._rotulo(ttk.Button(busca, command=lambda: self.filtro.set("")), "limpar").grid(
             row=0, column=2, padx=(6, 0)
         )
 
@@ -96,13 +143,13 @@ class App(tk.Tk):
         self.lista = ttk.Treeview(
             quadro, columns=("marca", "nome", "tamanho", "situacao"), show="headings", selectmode="none"
         )
-        for coluna, titulo, largura, estica, alinhar in (
-            ("marca", "", 36, False, "center"),
-            ("nome", "Arquivo", 320, True, "w"),
-            ("tamanho", "Tamanho", 80, False, "e"),
-            ("situacao", "Situação", 110, False, "w"),
+        for coluna, largura, estica, alinhar in (
+            ("marca", 36, False, "center"),
+            ("nome", 320, True, "w"),
+            ("tamanho", 80, False, "e"),
+            ("situacao", 110, False, "w"),
         ):
-            self.lista.heading(coluna, text=titulo, anchor=alinhar)
+            self.lista.heading(coluna, anchor=alinhar)
             self.lista.column(coluna, width=largura, minwidth=largura, stretch=estica, anchor=alinhar)
         self.lista.tag_configure("feito", foreground="#7a7a7a")
         self.lista.tag_configure("marcado", background="#cfe3ff")
@@ -115,9 +162,9 @@ class App(tk.Tk):
         selecao = ttk.Frame(raiz)
         selecao.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         self.botoes_selecao = [
-            ttk.Button(selecao, text="Marcar todos", command=lambda: self._marcar("todos")),
-            ttk.Button(selecao, text="Desmarcar todos", command=lambda: self._marcar("nenhum")),
-            ttk.Button(selecao, text="Marcar pendentes", command=lambda: self._marcar("pendentes")),
+            self._rotulo(ttk.Button(selecao, command=lambda: self._marcar("todos")), "marcar_todos"),
+            self._rotulo(ttk.Button(selecao, command=lambda: self._marcar("nenhum")), "desmarcar_todos"),
+            self._rotulo(ttk.Button(selecao, command=lambda: self._marcar("pendentes")), "marcar_pendentes"),
         ]
         for i, botao in enumerate(self.botoes_selecao):
             botao.pack(side="left", padx=(0 if i == 0 else 6, 0))
@@ -126,23 +173,17 @@ class App(tk.Tk):
 
         acoes = ttk.Frame(raiz)
         acoes.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(10, 4))
-        ttk.Label(acoes, text="Idioma:").pack(side="left")
-        self.combo_idioma = ttk.Combobox(
-            acoes, textvariable=self.idioma, state="readonly", width=12,
-            values=["Automático", "Português", "Inglês", "Espanhol"],
-        )
+        self._rotulo(ttk.Label(acoes), "idioma_fala").pack(side="left")
+        self.combo_idioma = ttk.Combobox(acoes, state="readonly", width=12)
         self.combo_idioma.pack(side="left", padx=(4, 10))
-        self.botao_transcrever = ttk.Button(
-            acoes, text="Transcrever", command=self._iniciar, state="disabled"
-        )
+        self.botao_transcrever = ttk.Button(acoes, command=self._iniciar, state="disabled")
         self.botao_transcrever.pack(side="left")
-        self.botao_cancelar = ttk.Button(
-            acoes, text="Cancelar", command=self._pedir_cancelamento, state="disabled"
+        self.botao_cancelar = self._rotulo(
+            ttk.Button(acoes, command=self._pedir_cancelamento, state="disabled"), "cancelar"
         )
         self.botao_cancelar.pack(side="left", padx=(6, 0))
-        self.botao_abrir = ttk.Button(acoes, text="Abrir pasta", command=self._abrir_pasta)
-        self.botao_abrir.pack(side="left", padx=(6, 0))
-        self.status = ttk.Label(acoes, text="Preparando...")
+        self._rotulo(ttk.Button(acoes, command=self._abrir_pasta), "abrir_pasta").pack(side="left", padx=(6, 0))
+        self.status = ttk.Label(acoes, text="")
         self.status.pack(side="left", padx=(12, 0))
 
         self.barra = ttk.Progressbar(raiz, maximum=100)
@@ -150,6 +191,34 @@ class App(tk.Tk):
 
         self.log = ScrolledText(raiz, height=7, state="disabled", wrap="word")
         self.log.grid(row=8, column=0, columnspan=2, sticky="nsew")
+
+    def _aplicar_textos(self) -> None:
+        """Escreve (ou reescreve, ao trocar o idioma) todos os textos da tela."""
+        for widget, chave in self._rotulos:
+            widget.configure(text=t(chave))
+        for coluna, chave in (("nome", "col_arquivo"), ("tamanho", "col_tamanho"), ("situacao", "col_situacao")):
+            self.lista.heading(coluna, text=t(chave))
+
+        escolhido = max(self.combo_idioma.current(), 0)
+        self.combo_idioma.configure(values=[t(chave) for chave in IDIOMAS_FALA])
+        self.combo_idioma.current(escolhido)
+
+        if self.transcritor:
+            formatos = ", ".join(e.lstrip(".").upper() for e in sorted(self.transcritor.EXTENSOES))
+            self.formatos.configure(text=t("formatos", lista=formatos))
+        chave, valores = self._estado
+        self.status.configure(text=t(chave, **valores))
+        self._mostrar_lista()
+
+    def _trocar_interface(self) -> None:
+        idioma = INTERFACES[self.combo_interface.current()]
+        textos.definir_idioma(idioma)
+        salvar_preferencias({**ler_preferencias(), "interface": idioma})
+        self._aplicar_textos()
+
+    def _status(self, chave: str, **valores) -> None:
+        self._estado = (chave, valores)
+        self.status.configure(text=t(chave, **valores))
 
     def _escrever(self, texto: str) -> None:
         self.log.configure(state="normal")
@@ -172,7 +241,7 @@ class App(tk.Tk):
                 if video.with_suffix(".txt").exists():
                     self.feitos.add(str(video))
             if not self.videos:
-                self._escrever(f"Nenhum vídeo ou áudio em {pasta}")
+                self._escrever(t("nenhum_video", pasta=pasta))
         self._mostrar_lista()
 
     def _mostrar_lista(self) -> None:
@@ -182,16 +251,15 @@ class App(tk.Tk):
         self.visiveis = [v for v in self.videos if termo in v.name.lower()]
         for video in self.visiveis:
             iid = str(video)
-            feito = iid in self.feitos
             self.lista.insert(
                 "", "end", iid=iid, tags=self._tags(iid),
-                values=(CAIXA[iid in self.marcados], video.name,
-                        tamanho_legivel(self.tamanhos[iid]), "já transcrito" if feito else "pendente"),
+                values=(CAIXA[iid in self.marcados], video.name, tamanho_legivel(self.tamanhos[iid]),
+                        t("feito") if iid in self.feitos else t("pendente")),
             )
         self._atualizar_contagem()
 
     def _tags(self, iid: str) -> tuple[str, ...]:
-        return tuple(t for t, ativo in (("feito", iid in self.feitos), ("marcado", iid in self.marcados)) if ativo)
+        return tuple(tag for tag, ativo in (("feito", iid in self.feitos), ("marcado", iid in self.marcados)) if ativo)
 
     def _definir_marca(self, iid: str, marcado: bool) -> None:
         if marcado:
@@ -226,22 +294,23 @@ class App(tk.Tk):
 
     def _atualizar_contagem(self) -> None:
         n = len(self.marcados)
-        texto = ""
+        partes = []
         if self.videos:
-            total = tamanho_legivel(sum(self.tamanhos[i] for i in self.marcados))
-            texto = f"{n} de {len(self.videos)} selecionado(s)" + (f" · {total}" if n else "")
+            partes.append(t("contagem", n=n, total=len(self.videos)))
+            if n:
+                partes.append(tamanho_legivel(sum(self.tamanhos[i] for i in self.marcados)))
             if self.filtro.get().strip():
-                texto += f" · {len(self.visiveis)} no filtro"
-        self.contagem.configure(text=texto)
+                partes.append(t("no_filtro", n=len(self.visiveis)))
+        self.contagem.configure(text=" · ".join(partes))
         self.botao_transcrever.configure(
-            text=f"Transcrever ({n})" if n else "Transcrever",
+            text=t("transcrever_n", n=n) if n else t("transcrever"),
             state="normal" if n and self.transcritor and not self.rodando else "disabled",
         )
 
     # ----------------------------------------------------------------- ações
 
     def _escolher_pasta(self) -> None:
-        escolhida = filedialog.askdirectory(title="Escolha a pasta com as gravações")
+        escolhida = filedialog.askdirectory(title=t("escolher_titulo"))
         if escolhida:
             self.pasta.set(str(Path(escolhida)))
             self._carregar_lista()
@@ -251,11 +320,7 @@ class App(tk.Tk):
         if not videos:
             return
         refazer = [v for v in videos if str(v) in self.feitos]
-        if refazer and not messagebox.askokcancel(
-            "Meet Transcript",
-            f"{len(refazer)} arquivo(s) marcado(s) já têm transcrição e serão refeitos "
-            "(o .txt e o .srt atuais serão substituídos). Continuar?",
-        ):
+        if refazer and not messagebox.askokcancel("Meet Transcript", t("confirma_refazer", n=len(refazer))):
             return
 
         self.cancelar.clear()
@@ -264,8 +329,9 @@ class App(tk.Tk):
         self.combo_idioma.configure(state="disabled")
         self.botao_cancelar.configure(state="normal")
         self.barra["value"] = 0
-        self.status.configure(text="Transcrevendo...")
-        idioma = self.transcritor.IDIOMAS[self.idioma.get()]
+        self._status("transcrevendo")
+        escolhido = IDIOMAS_FALA[self.combo_idioma.current()]
+        idioma = None if escolhido == "auto" else escolhido
         self.trabalho = threading.Thread(target=self._trabalhar, args=(videos, idioma), daemon=True)
         self.trabalho.start()
         self._atualizar_contagem()
@@ -273,7 +339,7 @@ class App(tk.Tk):
     def _pedir_cancelamento(self) -> None:
         self.cancelar.set()
         self.botao_cancelar.configure(state="disabled")
-        self.status.configure(text="Cancelando...")
+        self._status("cancelando")
 
     def _abrir_pasta(self) -> None:
         pasta = self.pasta.get().strip().strip('"')
@@ -286,11 +352,7 @@ class App(tk.Tk):
 
     def _fechar(self) -> None:
         if self.rodando:
-            if not messagebox.askokcancel(
-                "Meet Transcript",
-                "A transcrição será cancelada. Os arquivos já concluídos ficam salvos; "
-                "o que está em andamento é descartado. Sair mesmo assim?",
-            ):
+            if not messagebox.askokcancel("Meet Transcript", t("confirma_sair")):
                 return
             # Dá alguns segundos para a thread parar e apagar os arquivos .parcial.
             self._pedir_cancelamento()
@@ -336,17 +398,16 @@ class App(tk.Tk):
                     i, total, fracao = dado
                     self.barra["value"] = (i + fracao) / total * 100
                     if not self.cancelar.is_set():
-                        self.status.configure(text=f"Arquivo {i + 1} de {total}: {fracao:.0%}")
+                        self._status("progresso", i=i + 1, total=total, pct=f"{fracao:.0%}")
                 elif tipo == "modulo":
                     self.transcritor = dado
-                    self.status.configure(text="Pronto.")
-                    formatos = ", ".join(e.lstrip(".").upper() for e in sorted(dado.EXTENSOES))
-                    self.formatos.configure(text=f"Formatos aceitos: {formatos}")
-                    self._carregar_lista()  # caso a pasta tenha sido escolhida antes
+                    self._status("pronto")
+                    self._aplicar_textos()   # mostra os formatos aceitos
+                    self._carregar_lista()   # caso a pasta tenha sido escolhida antes
                 elif tipo == "erro_modulo":
-                    self.status.configure(text="Dependências não instaladas.")
-                    self._escrever(f"Erro ao carregar o faster-whisper: {dado}")
-                    self._escrever("Rode instalar.bat (ou: py -m pip install -r requirements.txt).")
+                    self._status("sem_dependencias")
+                    self._escrever(t("log_erro_modulo", erro=dado))
+                    self._escrever(t("log_dica_instalar"))
                 elif tipo in ("fim", "cancelado", "erro"):
                     self._terminar(tipo, dado)
         except queue.Empty:
@@ -361,13 +422,13 @@ class App(tk.Tk):
         self.botao_cancelar.configure(state="disabled")
         if tipo == "fim":
             self.barra["value"] = 100
-            self.status.configure(text=f"Concluído: {dado} arquivo(s) transcrito(s).")
+            self._status("fim", n=dado)
         elif tipo == "cancelado":
-            self.status.configure(text="Cancelado.")
-            self._escrever("Cancelado. Os arquivos concluídos foram mantidos; o que estava em andamento foi descartado.")
+            self._status("cancelado")
+            self._escrever(t("log_cancelado"))
         else:
-            self.status.configure(text="Erro.")
-            self._escrever(f"ERRO: {dado}")
+            self._status("erro")
+            self._escrever(t("log_erro", erro=dado))
             messagebox.showerror("Meet Transcript", dado)
         self._carregar_lista()  # atualiza a situação de cada arquivo
 
@@ -386,6 +447,9 @@ def main() -> None:
             ctypes.windll.shcore.SetProcessDpiAwareness(1)
         except Exception:  # noqa: BLE001
             pass
+    preferida = ler_preferencias().get("interface")
+    if preferida in INTERFACES:
+        textos.definir_idioma(preferida)
     App().mainloop()
 
 

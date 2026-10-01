@@ -3,6 +3,8 @@ MEET TRANSCRIPT - transcrição de reuniões no seu computador
 
 COMO USAR
 1. Dê dois cliques em "Meet Transcript.exe".
+   (A interface segue o idioma do Windows; dá para trocar entre Português e
+   English no canto superior direito.)
 2. Clique em "Escolher..." e selecione a pasta com as gravações.
 3. Clique nos arquivos que quer transcrever (ou em "Marcar todos").
 4. Clique em "Transcrever".

@@ -19,7 +19,7 @@ Just pick the folder with your recordings and tick which files to transcribe (or
 [00:00:10] falta só validar com o time de suporte.
 ```
 
-> The interface is in Portuguese; the transcription language is detected automatically.
+> The interface is available in English and Portuguese (it follows your Windows language; switch in the top-right corner). The transcription language is detected automatically.
 
 ## ⬇️ Download for Windows (nothing to install)
 
@@ -37,10 +37,10 @@ Extract the `.zip` and double-click **`Meet Transcript.exe`**. No Python needed.
 
 ## Usage
 
-1. Click **Escolher...** (Choose) and select the folder with your recordings.
-2. Click files to tick them (everything starts unticked). Use **Filtrar por nome** (filter by name) to find a file; the **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** (tick all / untick all / tick pending) buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
-3. In **Idioma** (Language), keep **Automático** (Automatic) or fix the meeting's language. Note: fixing the wrong language makes the model *translate* the speech.
-4. Click **Transcrever** (Transcribe). **Cancelar** (Cancel), or closing the window, stops the run: finished files are kept and the one in progress is discarded.
+1. Click **Browse...** and select the folder with your recordings.
+2. Click files to tick them (everything starts unticked). Use **Filter by name** to find a file; the **Select all** / **Select none** / **Select pending** buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
+3. In **Spoken language**, keep **Automatic** or fix the meeting's language. Note: fixing the wrong language makes the model *translate* the speech.
+4. Click **Transcribe**. **Cancel**, or closing the window, stops the run: finished files are kept and the one in progress is discarded.
 
 ## Versions
 
@@ -53,6 +53,7 @@ Extract the `.zip` and double-click **`Meet Transcript.exe`**. No Python needed.
 
 - **Privacy**: uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (OpenAI's Whisper reimplemented on CTranslate2) right on your machine.
 - **GPU with automatic fallback**: checks for an NVIDIA GPU and the CUDA libraries, confirms with a real test run (`large-v3-turbo` model) and, if anything fails, falls back to the CPU (`medium` model) on its own.
+- **English and Portuguese interface**: follows the Windows language and can be switched live from the selector in the corner; the choice is remembered.
 - **Simple interface** built with Tkinter: pick a folder, filter by name, tick the files, see the total size selected, follow the progress and cancel at any time. Transcription runs on a background thread, so the window never freezes.
 - **Resumable**: the list shows what has already been transcribed. Output is written to `.parcial` files and only renamed at the end, so an interrupted run never leaves a half-finished transcript that looks complete.
 - **Fast**: voice activity detection (VAD) skips silence. On a GTX 1650 (4 GB), about 2 hours of meetings took about 13 minutes.
@@ -100,8 +101,8 @@ Model, default language and accepted formats are at the top of [`transcrever.py`
 
 | Symptom | Fix |
 |---|---|
-| Translated passages (e.g. an English meeting coming out in Portuguese) | The language was fixed to the wrong one. Use **Automático** and transcribe again. |
-| "GPU indisponível" (GPU unavailable) in the log | Expected on computers without an NVIDIA card: the program uses the CPU. If you have NVIDIA, use the "NVIDIA" download (or install `requirements-gpu.txt`) and check the driver (`nvidia-smi`, must be 528+). |
+| Translated passages (e.g. an English meeting coming out in Portuguese) | The language was fixed to the wrong one. Use **Automatic** and transcribe again. |
+| "GPU unavailable" in the log | Expected on computers without an NVIDIA card: the program uses the CPU. If you have NVIDIA, use the "NVIDIA" download (or install `requirements-gpu.txt`) and check the driver (`nvidia-smi`, must be 528+). |
 | `TypeError: open() got an unexpected keyword argument 'metadata_errors'` | PyAV is too new: `py -m pip install --only-binary=:all: "av<15"` |
 | `python` opens the Microsoft Store | Use `py` instead of `python`, or turn off the shortcut in *Settings → Apps → Advanced app settings → App execution aliases* |
 
@@ -113,8 +114,9 @@ meet-transcript/
 └── transcricao-simples/
     ├── app.py                     # graphical interface (Tkinter)
     ├── transcrever.py             # transcription logic + command line
+    ├── textos.py                  # interface strings in Portuguese and English
     ├── meet_transcript.spec       # PyInstaller recipe
-    ├── LEIA-ME.txt                # quick guide shipped inside the .zip
+    ├── LEIA-ME.txt / README.txt   # quick guide shipped inside the .zip (PT/EN)
     ├── instalar.bat / iniciar.bat
     ├── requirements.txt
     └── requirements-gpu.txt       # optional CUDA

@@ -49,6 +49,8 @@ _registrar_dlls_cuda()
 
 from faster_whisper import WhisperModel  # noqa: E402
 
+from textos import t  # noqa: E402
+
 # ---------------------------------------------------------------- configuração
 
 # GPU NVIDIA com 4 GB ou mais: "large-v3-turbo" em int8 é o melhor equilíbrio
@@ -62,7 +64,6 @@ MODELO_CPU, COMPUTE_CPU = "medium", "int8"
 # misturam idiomas. Fixar um código ("pt", "en"...) evita erro de detecção quando a
 # reunião é toda em um idioma; mas fixar o idioma errado faz o modelo TRADUZIR a fala.
 IDIOMA: Optional[str] = None
-IDIOMAS = {"Automático": None, "Português": "pt", "Inglês": "en", "Espanhol": "es"}
 EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav"}
 
 Log = Callable[[str], None]
@@ -98,7 +99,7 @@ def _motivo_sem_gpu() -> Optional[str]:
     import ctranslate2
 
     if ctranslate2.get_cuda_device_count() == 0:
-        return "nenhuma GPU NVIDIA encontrada"
+        return t("sem_gpu")
     if os.name == "nt":
         import ctypes
 
@@ -106,7 +107,7 @@ def _motivo_sem_gpu() -> Optional[str]:
             try:
                 ctypes.WinDLL(dll)
             except OSError:
-                return f"{dll} não encontrada; para usar a GPU, instale o suporte a CUDA"
+                return t("sem_dll", dll=dll)
     return None
 
 
@@ -119,16 +120,16 @@ def carregar_modelo(log: Log = print) -> WhisperModel:
         motivo = _motivo_sem_gpu()
         if motivo:
             raise RuntimeError(motivo)
-        log(f"Carregando {MODELO_GPU} na GPU (na primeira vez baixa ~1,6 GB)...")
+        log(t("carregando_gpu", modelo=MODELO_GPU))
         modelo = WhisperModel(MODELO_GPU, device="cuda", compute_type=COMPUTE_GPU)
         import numpy as np
 
         list(modelo.transcribe(np.zeros(16000, dtype=np.float32), language="en")[0])
-        log("GPU ok.")
+        log(t("gpu_ok"))
         return modelo
     except Exception as erro:  # noqa: BLE001
-        log(f"GPU indisponível ({erro.__class__.__name__}: {erro})")
-        log(f"Carregando {MODELO_CPU} na CPU (na primeira vez baixa ~1,5 GB)...")
+        log(t("gpu_indisponivel", erro=f"{erro.__class__.__name__}: {erro}"))
+        log(t("carregando_cpu", modelo=MODELO_CPU))
         # os.cpu_count() conta threads lógicas; metade ≈ núcleos físicos, que é o
         # que rende melhor no CTranslate2.
         nucleos = max(1, (os.cpu_count() or 2) // 2)
@@ -155,8 +156,8 @@ def transcrever_arquivo(
         beam_size=5,
         condition_on_previous_text=False,     # evita o modelo entrar em loop
     )
-    detectado = f"automático, começa em {info.language}" if idioma is None else idioma
-    log(f"    duração {hms(info.duration)}, idioma: {detectado}, transcrevendo...")
+    detectado = t("idioma_auto", codigo=info.language) if idioma is None else idioma
+    log(t("duracao", duracao=hms(info.duration), idioma=detectado))
 
     destino_txt, destino_srt = video.with_suffix(".txt"), video.with_suffix(".srt")
     parcial_txt = destino_txt.with_name(destino_txt.name + ".parcial")
@@ -164,7 +165,7 @@ def transcrever_arquivo(
 
     try:
         with parcial_txt.open("w", encoding="utf-8") as txt, parcial_srt.open("w", encoding="utf-8") as srt:
-            txt.write(f"# Transcrição: {video.name}\n\n")
+            txt.write(t("cabecalho", nome=video.name) + "\n\n")
             for i, seg in enumerate(segmentos, start=1):
                 if cancelado and cancelado():
                     raise Cancelamento()
@@ -190,15 +191,15 @@ def transcrever_pasta(
     """Transcreve todos os vídeos/áudios da pasta. Retorna quantos foram transcritos."""
     videos = listar_videos(pasta)
     if not videos:
-        log(f"Nenhum vídeo ou áudio encontrado em {pasta}")
+        log(t("nenhum_video", pasta=pasta))
         return 0
 
     pendentes = [v for v in videos if refazer or not v.with_suffix(".txt").exists()]
     for video in videos:
         if video not in pendentes:
-            log(f"[pulando] {video.name}: já existe {video.with_suffix('.txt').name}")
+            log(t("pulando", nome=video.name, txt=video.with_suffix(".txt").name))
     if not pendentes:
-        log("Nada a fazer: todos os arquivos já têm transcrição.")
+        log(t("nada_a_fazer"))
         return 0
 
     return transcrever_arquivos(pendentes, log, progresso, idioma=idioma)
@@ -226,9 +227,9 @@ def transcrever_arquivos(
         inicio = time.monotonic()
         avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
         transcrever_arquivo(modelo, video, log, avancar, cancelado, idioma)
-        log(f"    pronto em {hms(time.monotonic() - inicio)} -> {video.with_suffix('.txt').name}")
+        log(t("arquivo_pronto", tempo=hms(time.monotonic() - inicio), arquivo=video.with_suffix(".txt").name))
 
-    log("Concluído.")
+    log(t("concluido"))
     return len(videos)
 
 
@@ -240,12 +241,13 @@ def main() -> None:
         idioma = args[i + 1] if i + 1 < len(args) else None
         del args[i:i + 2]
     if not args:
-        print(__doc__)
+        prog = "meet-transcript-cli.exe" if getattr(sys, "frozen", False) else "py transcrever.py"
+        print(t("uso", prog=prog))
         sys.exit(1)
 
     pasta = Path(args[0]).expanduser()
     if not pasta.is_dir():
-        print(f"Pasta não encontrada: {pasta}")
+        print(t("pasta_nao_encontrada", pasta=pasta))
         sys.exit(1)
 
     transcrever_pasta(pasta, idioma=idioma)

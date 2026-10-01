@@ -47,12 +47,12 @@ jobs:
         run: |
           $saida = & "dist/Meet Transcript/meet-transcript-cli.exe" 2>&1 | Out-String
           Write-Output $saida
-          if ($saida -notmatch "Uso pela linha de comando") { exit 1 }
+          if ($saida -notmatch "--idioma") { exit 1 }
           exit 0
 
       - name: Compactar
         run: |
-          Copy-Item LEIA-ME.txt "dist/Meet Transcript/"
+          Copy-Item LEIA-ME.txt, README.txt "dist/Meet Transcript/"
           7z a -tzip "${{ matrix.arquivo }}" "./dist/Meet Transcript" | Out-Null
           Get-Item "${{ matrix.arquivo }}" | Select-Object Name, @{n='MB';e={[int]($_.Length / 1MB)}}
 

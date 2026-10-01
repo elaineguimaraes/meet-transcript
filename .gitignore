@@ -17,6 +17,7 @@ venv/
 *.srt
 *.parcial
 !LEIA-ME.txt
+!README.txt
 
 # Build do executável (PyInstaller)
 build/
