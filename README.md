@@ -1,5 +1,7 @@
 # Meet Transcript
 
+**Português** | [English](README.en.md)
+
 Transcrição automática de gravações de reunião feitas no **OBS Studio** (ou qualquer vídeo/áudio), rodando **100% local**: nenhum áudio sai do seu computador e não há custo de API.
 
 Basta escolher a pasta com as gravações. Para cada vídeo são gerados um `.txt` com marcação de tempo e uma legenda `.srt`.
@@ -79,7 +81,3 @@ meet-transcript/
     ├── requirements.txt
     └── requirements-gpu.txt   # CUDA opcional
 ```
-
----
-
-**English:** Offline meeting transcription for OBS Studio recordings, built on faster-whisper. Pick a folder in a small Tkinter GUI and every video gets a timestamped `.txt` and an `.srt` subtitle. Runs on an NVIDIA GPU when available, with automatic CPU fallback. Tuned for Portuguese; change `IDIOMA` in `transcrever.py` for other languages.
