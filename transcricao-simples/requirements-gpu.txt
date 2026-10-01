@@ -1,0 +1,3 @@
+# Opcional: bibliotecas CUDA para rodar na GPU NVIDIA (~1 GB). Sem elas, usa a CPU.
+nvidia-cublas-cu12
+nvidia-cudnn-cu12==9.*

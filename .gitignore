@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Gravações e transcrições nunca entram no repositório
+*.mkv
+*.mp4
+*.mov
+*.flv
+*.webm
+*.m4a
+*.mp3
+*.wav
+*.txt
+!requirements*.txt
+*.srt
+*.parcial
