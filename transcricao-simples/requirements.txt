@@ -1,3 +1,6 @@
 faster-whisper>=1.1
 # faster-whisper 1.2.x usa um parâmetro que o PyAV removeu na versão 15
 av>=11,<15
+# Só pacotes prontos: nem toda versão do PyAV tem instalador para todo Python,
+# e compilar do código-fonte exige o Visual C++.
+--only-binary=av

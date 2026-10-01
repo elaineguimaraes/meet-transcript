@@ -35,6 +35,7 @@ class App(tk.Tk):
         self.cancelar = threading.Event()
         self.pasta = tk.StringVar()
         self.filtro = tk.StringVar()
+        self.idioma = tk.StringVar(value="Automático")
         self.filtro.trace_add("write", lambda *_: self._mostrar_lista())
 
         # Arquivos da pasta. As chaves dos conjuntos/dicionários são str(caminho),
@@ -125,6 +126,12 @@ class App(tk.Tk):
 
         acoes = ttk.Frame(raiz)
         acoes.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(10, 4))
+        ttk.Label(acoes, text="Idioma:").pack(side="left")
+        self.combo_idioma = ttk.Combobox(
+            acoes, textvariable=self.idioma, state="readonly", width=12,
+            values=["Automático", "Português", "Inglês", "Espanhol"],
+        )
+        self.combo_idioma.pack(side="left", padx=(4, 10))
         self.botao_transcrever = ttk.Button(
             acoes, text="Transcrever", command=self._iniciar, state="disabled"
         )
@@ -254,10 +261,12 @@ class App(tk.Tk):
         self.cancelar.clear()
         for botao in (self.botao_escolher, *self.botoes_selecao):
             botao.configure(state="disabled")
+        self.combo_idioma.configure(state="disabled")
         self.botao_cancelar.configure(state="normal")
         self.barra["value"] = 0
         self.status.configure(text="Transcrevendo...")
-        self.trabalho = threading.Thread(target=self._trabalhar, args=(videos,), daemon=True)
+        idioma = self.transcritor.IDIOMAS[self.idioma.get()]
+        self.trabalho = threading.Thread(target=self._trabalhar, args=(videos, idioma), daemon=True)
         self.trabalho.start()
         self._atualizar_contagem()
 
@@ -301,13 +310,14 @@ class App(tk.Tk):
         except Exception as erro:  # noqa: BLE001
             self.fila.put(("erro_modulo", f"{erro.__class__.__name__}: {erro}"))
 
-    def _trabalhar(self, videos: list[Path]) -> None:
+    def _trabalhar(self, videos: list[Path], idioma: str | None) -> None:
         try:
             n = self.transcritor.transcrever_arquivos(
                 videos,
                 log=lambda texto: self.fila.put(("log", texto)),
                 progresso=lambda i, total, fracao: self.fila.put(("progresso", (i, total, fracao))),
                 cancelado=self.cancelar.is_set,
+                idioma=idioma,
             )
             self.fila.put(("fim", n))
         except self.transcritor.Cancelamento:
@@ -347,6 +357,7 @@ class App(tk.Tk):
         self.trabalho = None
         for botao in (self.botao_escolher, *self.botoes_selecao):
             botao.configure(state="normal")
+        self.combo_idioma.configure(state="readonly")
         self.botao_cancelar.configure(state="disabled")
         if tipo == "fim":
             self.barra["value"] = 100
@@ -362,6 +373,12 @@ class App(tk.Tk):
 
 
 def main() -> None:
+    # No executável sem console, stdout/stderr são None e bibliotecas que imprimem
+    # (ex.: barra de download do modelo) quebrariam.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
     if os.name == "nt":
         try:  # texto nítido em telas com escala (125%, 150%...)
             import ctypes

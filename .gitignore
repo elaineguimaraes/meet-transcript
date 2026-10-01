@@ -16,3 +16,8 @@ venv/
 !requirements*.txt
 *.srt
 *.parcial
+!LEIA-ME.txt
+
+# Build do executável (PyInstaller)
+build/
+dist/

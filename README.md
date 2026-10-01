@@ -8,6 +8,8 @@ Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (o
 
 **Formatos aceitos:** MKV, MP4, MOV, FLV, WEBM (vídeo) e M4A, MP3, WAV (áudio).
 
+**Idioma:** detectado automaticamente a cada trecho, então reuniões em inglês, português ou misturando os dois saem no idioma em que foram faladas. Também dá para fixar o idioma.
+
 ```
 # Transcrição: reuniao-planejamento.mkv
 
@@ -16,6 +18,27 @@ Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (o
 [00:00:07] A tela de cadastro já está pronta para teste,
 [00:00:10] falta só validar com o time de suporte.
 ```
+
+## ⬇️ Download para Windows (sem instalar nada)
+
+Na página da **[última versão](https://github.com/elaineguimaraes/meet-transcript/releases/latest)**, baixe:
+
+| Arquivo | Para quem |
+|---|---|
+| `MeetTranscript-Windows-NVIDIA.zip` | Computadores com placa de vídeo NVIDIA (bem mais rápido) |
+| `MeetTranscript-Windows.zip` | Qualquer computador (usa o processador) |
+
+Extraia o `.zip` e dê dois cliques em **`Meet Transcript.exe`**. Não precisa de Python.
+
+- Na primeira vez, o Windows pode mostrar *"O Windows protegeu o computador"*: clique em **Mais informações → Executar assim mesmo**. O aviso aparece porque o programa não tem assinatura digital paga.
+- Na primeira transcrição, o modelo (~1,5 GB) é baixado uma única vez. Depois funciona offline.
+
+## Como usar
+
+1. Clique em **Escolher...** e selecione a pasta com as gravações.
+2. Clique nos arquivos para marcá-los (tudo começa desmarcado). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
+3. Em **Idioma**, deixe **Automático** ou fixe o idioma da reunião. Atenção: fixar o idioma errado faz o modelo *traduzir* a fala.
+4. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos e o que estava em andamento é descartado.
 
 ## Versões
 
@@ -27,31 +50,24 @@ Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (o
 ## Destaques
 
 - **Privacidade**: usa o [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (Whisper da OpenAI reimplementado em CTranslate2) direto na máquina.
-- **GPU com fallback automático**: tenta a GPU NVIDIA (modelo `large-v3-turbo`), valida com um teste real e, se o CUDA falhar, cai sozinho para a CPU (modelo `medium`).
-- **Interface simples** em Tkinter: escolher a pasta, filtrar por nome, marcar os arquivos (todos, nenhum ou só os pendentes), ver o tamanho total selecionado, acompanhar o progresso e cancelar a qualquer momento. A transcrição roda em uma thread separada, então a janela não trava.
-- **Retomável**: a lista mostra o que já foi transcrito, e a linha de comando pula esses arquivos. A saída é gravada em `.parcial` e só é renomeada no final, então uma execução interrompida nunca deixa uma transcrição pela metade passando por pronta.
+- **GPU com fallback automático**: confere se há GPU NVIDIA e bibliotecas CUDA, valida com um teste real (modelo `large-v3-turbo`) e, se algo falhar, cai sozinho para a CPU (modelo `medium`).
+- **Interface simples** em Tkinter: escolher a pasta, filtrar por nome, marcar os arquivos, ver o tamanho total selecionado, acompanhar o progresso e cancelar a qualquer momento. A transcrição roda em uma thread separada, então a janela não trava.
+- **Retomável**: a lista mostra o que já foi transcrito. A saída é gravada em `.parcial` e só é renomeada no final, então uma execução interrompida nunca deixa uma transcrição pela metade passando por pronta.
 - **Rápido**: filtro de voz (VAD) descarta silêncio. Numa GTX 1650 (4 GB), ~2 h de reunião foram transcritas em ~13 min.
+- **Release automatizada**: a cada tag `v*`, o [GitHub Actions](.github/workflows/release.yml) gera os executáveis com PyInstaller (versões CPU e NVIDIA), testa e publica a Release.
 
-## Requisitos
+## Rodar a partir do código-fonte
 
-- Windows 10/11 (o código também roda em Linux/macOS pela linha de comando ou pela interface)
-- [Python](https://www.python.org/downloads/) 3.9 a 3.13
-- Opcional: GPU NVIDIA com 4 GB+ e driver 528 ou mais novo. Sem GPU funciona na CPU, só que mais devagar.
+Requisitos: [Python](https://www.python.org/downloads/) 3.9 a 3.13. Opcional: GPU NVIDIA com 4 GB+ e driver 528 ou mais novo. Não é preciso instalar o ffmpeg: o áudio é lido direto do vídeo.
 
-Não é preciso instalar o ffmpeg: o áudio é lido direto do vídeo.
-
-## Como usar
-
-1. Baixe o projeto (**Code → Download ZIP**) ou clone:
+1. Clone o projeto:
    ```
    git clone https://github.com/elaineguimaraes/meet-transcript.git
    ```
 2. Na pasta `transcricao-simples`, dê dois cliques em **`instalar.bat`**. Ele instala as dependências e, se encontrar uma GPU NVIDIA, também o suporte a CUDA.
-3. Dê dois cliques em **`iniciar.bat`** e escolha a pasta com as gravações.
-4. Clique nos arquivos para marcá-los (tudo começa desmarcado). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
-5. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos e o que estava em andamento é descartado.
+3. Dê dois cliques em **`iniciar.bat`**.
 
-Na primeira execução o modelo é baixado (~1,5 GB), uma única vez.
+O código também roda em Linux/macOS (`python app.py`).
 
 ### Pela linha de comando
 
@@ -60,28 +76,44 @@ cd transcricao-simples
 py -m pip install -r requirements.txt
 py -m pip install -r requirements-gpu.txt   # opcional, só com GPU NVIDIA
 py transcrever.py "C:\caminho\das\gravacoes"
+py transcrever.py "C:\caminho\das\gravacoes" --idioma en   # fixa o idioma
+```
+
+No executável, o equivalente é `meet-transcript-cli.exe "C:\caminho\das\gravacoes"`.
+
+### Gerar o executável
+
+```
+cd transcricao-simples
+py -m pip install pyinstaller
+py -m PyInstaller meet_transcript.spec                 # versão CPU
+set MT_VARIANTE=nvidia && py -m PyInstaller meet_transcript.spec   # versão NVIDIA
 ```
 
 ### Ajustes
 
-Modelo, idioma e formatos aceitos ficam no topo de [`transcrever.py`](transcricao-simples/transcrever.py) (`MODELO_GPU`, `MODELO_CPU`, `IDIOMA`, `EXTENSOES`).
+Modelo, idioma padrão e formatos aceitos ficam no topo de [`transcrever.py`](transcricao-simples/transcrever.py) (`MODELO_GPU`, `MODELO_CPU`, `IDIOMA`, `EXTENSOES`).
 
 ## Problemas comuns
 
 | Sintoma | Solução |
 |---|---|
+| Trechos traduzidos (ex.: reunião em inglês saindo em português) | O idioma foi fixado errado. Use **Automático** e transcreva de novo. |
+| "GPU indisponível" no log | Normal em computadores sem placa NVIDIA: o programa usa o processador. Se você tem NVIDIA, use o download "NVIDIA" (ou instale o `requirements-gpu.txt`) e confira o driver (`nvidia-smi`, precisa ser 528+). |
 | `TypeError: open() got an unexpected keyword argument 'metadata_errors'` | PyAV novo demais: `py -m pip install --only-binary=:all: "av<15"` |
-| "GPU indisponível" no log | Confira o driver NVIDIA (`nvidia-smi`, precisa ser 528+) e se o `requirements-gpu.txt` foi instalado. O programa segue na CPU mesmo assim. |
 | `python` abre a Microsoft Store | Use `py` no lugar de `python`, ou desative o atalho em *Configurações → Aplicativos → Aliases de execução do aplicativo* |
 
 ## Estrutura
 
 ```
 meet-transcript/
+├── .github/workflows/release.yml  # gera e publica os executáveis
 └── transcricao-simples/
-    ├── app.py                 # interface gráfica (Tkinter)
-    ├── transcrever.py         # lógica de transcrição + linha de comando
+    ├── app.py                     # interface gráfica (Tkinter)
+    ├── transcrever.py             # lógica de transcrição + linha de comando
+    ├── meet_transcript.spec       # receita do PyInstaller
+    ├── LEIA-ME.txt                # guia rápido que vai dentro do .zip
     ├── instalar.bat / iniciar.bat
     ├── requirements.txt
-    └── requirements-gpu.txt   # CUDA opcional
+    └── requirements-gpu.txt       # CUDA opcional
 ```

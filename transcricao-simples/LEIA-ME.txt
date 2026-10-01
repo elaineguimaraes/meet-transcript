@@ -1,0 +1,37 @@
+MEET TRANSCRIPT - transcrição de reuniões no seu computador
+============================================================
+
+COMO USAR
+1. Dê dois cliques em "Meet Transcript.exe".
+2. Clique em "Escolher..." e selecione a pasta com as gravações.
+3. Clique nos arquivos que quer transcrever (ou em "Marcar todos").
+4. Clique em "Transcrever".
+
+Ao lado de cada vídeo serão criados:
+  - um .txt com o texto e a marcação de tempo
+  - um .srt (legenda), para assistir junto com o vídeo
+
+Formatos aceitos: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV.
+
+Idioma: deixe em "Automático" (detecta o idioma falado, inclusive reuniões
+que misturam português e inglês). Se fixar um idioma, escolha o certo:
+com o idioma errado, o programa traduz a fala em vez de transcrever.
+
+NA PRIMEIRA VEZ
+- O Windows pode mostrar "O Windows protegeu o computador".
+  Clique em "Mais informações" e depois em "Executar assim mesmo".
+  (O aviso aparece porque o programa não tem assinatura digital paga.)
+- O programa baixa o modelo de transcrição (~1,5 GB), uma única vez.
+  É preciso estar conectado à internet. Depois funciona offline.
+
+PRIVACIDADE
+Tudo roda no seu computador. Nenhum áudio é enviado para a internet.
+
+DICAS
+- Não mova o "Meet Transcript.exe" para fora desta pasta: ele precisa da
+  pasta "_internal" ao lado. Para ter um atalho na área de trabalho, clique
+  com o botão direito no .exe > "Enviar para" > "Área de trabalho (criar atalho)".
+- Com placa de vídeo NVIDIA, use a versão "NVIDIA" do download: é bem mais rápida.
+- Avançado: meet-transcript-cli.exe "C:\pasta" transcreve pela linha de comando.
+
+Código-fonte e ajuda: https://github.com/elaineguimaraes/meet-transcript

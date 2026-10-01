@@ -1,0 +1,95 @@
+name: Release
+
+# Ao enviar uma tag v* (ex.: v1.0.0), gera os executáveis para Windows e publica a Release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:  # permite gerar manualmente pela aba Actions (sem publicar)
+
+permissions:
+  contents: write
+
+jobs:
+  executavel:
+    name: Windows (${{ matrix.variante }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variante: cpu
+            arquivo: MeetTranscript-Windows.zip
+          - variante: nvidia
+            arquivo: MeetTranscript-Windows-NVIDIA.zip
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: transcricao-simples
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+          if ("${{ matrix.variante }}" -eq "nvidia") { python -m pip install -r requirements-gpu.txt }
+
+      - name: Gerar executável
+        env:
+          MT_VARIANTE: ${{ matrix.variante }}
+        run: python -m PyInstaller --noconfirm meet_transcript.spec
+
+      - name: Testar se o executável abre
+        run: |
+          $saida = & "dist/Meet Transcript/meet-transcript-cli.exe" 2>&1 | Out-String
+          Write-Output $saida
+          if ($saida -notmatch "Uso pela linha de comando") { exit 1 }
+          exit 0
+
+      - name: Compactar
+        run: |
+          Copy-Item LEIA-ME.txt "dist/Meet Transcript/"
+          7z a -tzip "${{ matrix.arquivo }}" "./dist/Meet Transcript" | Out-Null
+          Get-Item "${{ matrix.arquivo }}" | Select-Object Name, @{n='MB';e={[int]($_.Length / 1MB)}}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.variante }}
+          path: transcricao-simples/${{ matrix.arquivo }}
+          compression-level: 0  # já está compactado
+          retention-days: 7
+
+  publicar:
+    needs: executavel
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            MeetTranscript-Windows.zip
+            MeetTranscript-Windows-NVIDIA.zip
+          body: |
+            ## Download para Windows
+
+            | Arquivo | Para quem |
+            |---|---|
+            | **MeetTranscript-Windows-NVIDIA.zip** | Computadores com placa de vídeo NVIDIA (bem mais rápido) |
+            | **MeetTranscript-Windows.zip** | Qualquer computador (usa o processador) |
+
+            Não precisa instalar o Python. Extraia o .zip e abra **Meet Transcript.exe**.
+
+            - Na primeira vez, o Windows pode mostrar "O Windows protegeu o computador": clique em **Mais informações → Executar assim mesmo** (o programa não tem assinatura digital paga).
+            - Na primeira transcrição o modelo (~1,5 GB) é baixado uma única vez; depois funciona offline.
+
+            ---
+
+            **English:** extract the zip and open `Meet Transcript.exe`. Pick the NVIDIA build if you have an NVIDIA graphics card. No Python needed.

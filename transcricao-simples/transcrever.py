@@ -8,6 +8,9 @@ Para cada arquivo da pasta são gerados, ao lado dele:
 
 Uso pela linha de comando:
     py transcrever.py "C:\\caminho\\da\\pasta"
+    py transcrever.py "C:\\caminho\\da\\pasta" --idioma en
+
+Sem --idioma, o idioma é detectado automaticamente a cada trecho.
 
 Para a interface gráfica, use app.py (ou iniciar.bat).
 """
@@ -31,7 +34,9 @@ def _registrar_dlls_cuda() -> None:
     e o Python não as encontra sozinho. Aqui elas são adicionadas ao caminho de busca."""
     if os.name != "nt":
         return
-    for base in map(Path, sys.path):
+    # No executável (PyInstaller), as DLLs ficam dentro da pasta _internal (sys._MEIPASS).
+    bases = sys.path + ([sys._MEIPASS] if hasattr(sys, "_MEIPASS") else [])
+    for base in map(Path, bases):
         nvidia = base / "nvidia"
         if not nvidia.is_dir():
             continue
@@ -53,7 +58,11 @@ MODELO_GPU, COMPUTE_GPU = "large-v3-turbo", "int8"
 # Sem GPU: "medium" em int8 é o melhor custo-benefício na CPU.
 MODELO_CPU, COMPUTE_CPU = "medium", "int8"
 
-IDIOMA = "pt"
+# None = detecta o idioma a cada trecho (~30 s), o que também atende reuniões que
+# misturam idiomas. Fixar um código ("pt", "en"...) evita erro de detecção quando a
+# reunião é toda em um idioma; mas fixar o idioma errado faz o modelo TRADUZIR a fala.
+IDIOMA: Optional[str] = None
+IDIOMAS = {"Automático": None, "Português": "pt", "Inglês": "en", "Espanhol": "es"}
 EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav"}
 
 Log = Callable[[str], None]
@@ -84,15 +93,37 @@ def listar_videos(pasta: Path) -> list[Path]:
     return sorted(p for p in pasta.iterdir() if p.is_file() and p.suffix.lower() in EXTENSOES)
 
 
+def _motivo_sem_gpu() -> Optional[str]:
+    """Retorna por que a GPU não pode ser usada, ou None se ela parece utilizável."""
+    import ctranslate2
+
+    if ctranslate2.get_cuda_device_count() == 0:
+        return "nenhuma GPU NVIDIA encontrada"
+    if os.name == "nt":
+        import ctypes
+
+        for dll in ("cublas64_12.dll", "cudnn64_9.dll"):
+            try:
+                ctypes.WinDLL(dll)
+            except OSError:
+                return f"{dll} não encontrada; para usar a GPU, instale o suporte a CUDA"
+    return None
+
+
 def carregar_modelo(log: Log = print) -> WhisperModel:
     """Tenta a GPU e faz um teste real (1 s de silêncio) para confirmar que o CUDA
     funciona de verdade; se qualquer coisa falhar, usa a CPU."""
     try:
+        # Checa antes de tentar: sem as DLLs do CUDA, o CTranslate2 pode derrubar o
+        # processo inteiro em vez de levantar uma exceção.
+        motivo = _motivo_sem_gpu()
+        if motivo:
+            raise RuntimeError(motivo)
         log(f"Carregando {MODELO_GPU} na GPU (na primeira vez baixa ~1,6 GB)...")
         modelo = WhisperModel(MODELO_GPU, device="cuda", compute_type=COMPUTE_GPU)
         import numpy as np
 
-        list(modelo.transcribe(np.zeros(16000, dtype=np.float32), language=IDIOMA)[0])
+        list(modelo.transcribe(np.zeros(16000, dtype=np.float32), language="en")[0])
         log("GPU ok.")
         return modelo
     except Exception as erro:  # noqa: BLE001
@@ -110,19 +141,22 @@ def transcrever_arquivo(
     log: Log = print,
     progresso: Optional[Callable[[float], None]] = None,
     cancelado: Optional[Cancelado] = None,
+    idioma: Optional[str] = IDIOMA,
 ) -> None:
     """Gera <video>.txt e <video>.srt. Escreve em arquivos .parcial e só renomeia no
     final, para que uma transcrição interrompida não seja confundida com uma pronta."""
     # O faster-whisper decodifica o áudio direto do vídeo (via PyAV), já em 16 kHz mono.
     segmentos, info = modelo.transcribe(
         str(video),
-        language=IDIOMA,
+        language=idioma,
+        multilingual=idioma is None,          # sem idioma fixo, detecta a cada trecho
         vad_filter=True,                      # corta silêncio, acelera bastante
         vad_parameters={"min_silence_duration_ms": 700},
         beam_size=5,
         condition_on_previous_text=False,     # evita o modelo entrar em loop
     )
-    log(f"    duração {hms(info.duration)}, transcrevendo...")
+    detectado = f"automático, começa em {info.language}" if idioma is None else idioma
+    log(f"    duração {hms(info.duration)}, idioma: {detectado}, transcrevendo...")
 
     destino_txt, destino_srt = video.with_suffix(".txt"), video.with_suffix(".srt")
     parcial_txt = destino_txt.with_name(destino_txt.name + ".parcial")
@@ -151,6 +185,7 @@ def transcrever_pasta(
     log: Log = print,
     progresso: Optional[Progresso] = None,
     refazer: bool = False,
+    idioma: Optional[str] = IDIOMA,
 ) -> int:
     """Transcreve todos os vídeos/áudios da pasta. Retorna quantos foram transcritos."""
     videos = listar_videos(pasta)
@@ -166,7 +201,7 @@ def transcrever_pasta(
         log("Nada a fazer: todos os arquivos já têm transcrição.")
         return 0
 
-    return transcrever_arquivos(pendentes, log, progresso)
+    return transcrever_arquivos(pendentes, log, progresso, idioma=idioma)
 
 
 def transcrever_arquivos(
@@ -174,6 +209,7 @@ def transcrever_arquivos(
     log: Log = print,
     progresso: Optional[Progresso] = None,
     cancelado: Optional[Cancelado] = None,
+    idioma: Optional[str] = IDIOMA,
 ) -> int:
     """Transcreve exatamente os arquivos informados (refaz se já houver .txt).
     Se cancelado() retornar True, levanta Cancelamento: os arquivos já concluídos
@@ -189,7 +225,7 @@ def transcrever_arquivos(
         log(f"[{n + 1}/{len(videos)}] {video.name}")
         inicio = time.monotonic()
         avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
-        transcrever_arquivo(modelo, video, log, avancar, cancelado)
+        transcrever_arquivo(modelo, video, log, avancar, cancelado, idioma)
         log(f"    pronto em {hms(time.monotonic() - inicio)} -> {video.with_suffix('.txt').name}")
 
     log("Concluído.")
@@ -197,16 +233,22 @@ def transcrever_arquivos(
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
+    args = sys.argv[1:]
+    idioma = IDIOMA
+    if "--idioma" in args:
+        i = args.index("--idioma")
+        idioma = args[i + 1] if i + 1 < len(args) else None
+        del args[i:i + 2]
+    if not args:
         print(__doc__)
         sys.exit(1)
 
-    pasta = Path(sys.argv[1]).expanduser()
+    pasta = Path(args[0]).expanduser()
     if not pasta.is_dir():
         print(f"Pasta não encontrada: {pasta}")
         sys.exit(1)
 
-    transcrever_pasta(pasta)
+    transcrever_pasta(pasta, idioma=idioma)
 
 
 if __name__ == "__main__":
