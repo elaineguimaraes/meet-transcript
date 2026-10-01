@@ -157,17 +157,29 @@ def transcrever_pasta(
         log("Nada a fazer: todos os arquivos já têm transcrição.")
         return 0
 
+    return transcrever_arquivos(pendentes, log, progresso)
+
+
+def transcrever_arquivos(
+    videos: list[Path],
+    log: Log = print,
+    progresso: Optional[Progresso] = None,
+) -> int:
+    """Transcreve exatamente os arquivos informados (refaz se já houver .txt)."""
+    if not videos:
+        return 0
+
     modelo = carregar_modelo(log)
 
-    for n, video in enumerate(pendentes):
-        log(f"[{n + 1}/{len(pendentes)}] {video.name}")
+    for n, video in enumerate(videos):
+        log(f"[{n + 1}/{len(videos)}] {video.name}")
         inicio = time.monotonic()
-        avancar = (lambda f, n=n: progresso(n, len(pendentes), f)) if progresso else None
+        avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
         transcrever_arquivo(modelo, video, log, avancar)
         log(f"    pronto em {hms(time.monotonic() - inicio)} -> {video.with_suffix('.txt').name}")
 
     log("Concluído.")
-    return len(pendentes)
+    return len(videos)
 
 
 def main() -> None:
