@@ -59,6 +59,12 @@ EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav"}
 Log = Callable[[str], None]
 # (indice do arquivo, total de arquivos, fração concluída do arquivo atual)
 Progresso = Callable[[int, int, float], None]
+# Consultada durante o trabalho; se retornar True, a transcrição é interrompida.
+Cancelado = Callable[[], bool]
+
+
+class Cancelamento(Exception):
+    """Transcrição interrompida a pedido do usuário."""
 
 # --------------------------------------------------------------------- funções
 
@@ -103,6 +109,7 @@ def transcrever_arquivo(
     video: Path,
     log: Log = print,
     progresso: Optional[Callable[[float], None]] = None,
+    cancelado: Optional[Cancelado] = None,
 ) -> None:
     """Gera <video>.txt e <video>.srt. Escreve em arquivos .parcial e só renomeia no
     final, para que uma transcrição interrompida não seja confundida com uma pronta."""
@@ -125,6 +132,8 @@ def transcrever_arquivo(
         with parcial_txt.open("w", encoding="utf-8") as txt, parcial_srt.open("w", encoding="utf-8") as srt:
             txt.write(f"# Transcrição: {video.name}\n\n")
             for i, seg in enumerate(segmentos, start=1):
+                if cancelado and cancelado():
+                    raise Cancelamento()
                 texto = seg.text.strip()
                 txt.write(f"[{hms(seg.start)}] {texto}\n")
                 srt.write(f"{i}\n{srt_ts(seg.start)} --> {srt_ts(seg.end)}\n{texto}\n\n")
@@ -164,18 +173,23 @@ def transcrever_arquivos(
     videos: list[Path],
     log: Log = print,
     progresso: Optional[Progresso] = None,
+    cancelado: Optional[Cancelado] = None,
 ) -> int:
-    """Transcreve exatamente os arquivos informados (refaz se já houver .txt)."""
+    """Transcreve exatamente os arquivos informados (refaz se já houver .txt).
+    Se cancelado() retornar True, levanta Cancelamento: os arquivos já concluídos
+    ficam salvos e o que estava em andamento é descartado."""
     if not videos:
         return 0
 
     modelo = carregar_modelo(log)
 
     for n, video in enumerate(videos):
+        if cancelado and cancelado():
+            raise Cancelamento()
         log(f"[{n + 1}/{len(videos)}] {video.name}")
         inicio = time.monotonic()
         avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
-        transcrever_arquivo(modelo, video, log, avancar)
+        transcrever_arquivo(modelo, video, log, avancar, cancelado)
         log(f"    pronto em {hms(time.monotonic() - inicio)} -> {video.with_suffix('.txt').name}")
 
     log("Concluído.")

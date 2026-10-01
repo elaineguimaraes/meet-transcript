@@ -28,8 +28,8 @@ Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (o
 
 - **Privacidade**: usa o [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (Whisper da OpenAI reimplementado em CTranslate2) direto na máquina.
 - **GPU com fallback automático**: tenta a GPU NVIDIA (modelo `large-v3-turbo`), valida com um teste real e, se o CUDA falhar, cai sozinho para a CPU (modelo `medium`).
-- **Interface simples** em Tkinter: escolher a pasta, marcar os arquivos (todos, nenhum ou só os pendentes), acompanhar o progresso e abrir o resultado. A transcrição roda em uma thread separada, então a janela não trava.
-- **Retomável**: arquivos já transcritos aparecem desmarcados (e são pulados pela linha de comando). A saída é gravada em `.parcial` e só é renomeada no final, então uma execução interrompida nunca deixa uma transcrição pela metade passando por pronta.
+- **Interface simples** em Tkinter: escolher a pasta, filtrar por nome, marcar os arquivos (todos, nenhum ou só os pendentes), ver o tamanho total selecionado, acompanhar o progresso e cancelar a qualquer momento. A transcrição roda em uma thread separada, então a janela não trava.
+- **Retomável**: a lista mostra o que já foi transcrito, e a linha de comando pula esses arquivos. A saída é gravada em `.parcial` e só é renomeada no final, então uma execução interrompida nunca deixa uma transcrição pela metade passando por pronta.
 - **Rápido**: filtro de voz (VAD) descarta silêncio. Numa GTX 1650 (4 GB), ~2 h de reunião foram transcritas em ~13 min.
 
 ## Requisitos
@@ -48,7 +48,8 @@ Não é preciso instalar o ffmpeg: o áudio é lido direto do vídeo.
    ```
 2. Na pasta `transcricao-simples`, dê dois cliques em **`instalar.bat`**. Ele instala as dependências e, se encontrar uma GPU NVIDIA, também o suporte a CUDA.
 3. Dê dois cliques em **`iniciar.bat`** e escolha a pasta com as gravações.
-4. Na lista, clique nos arquivos para marcar ou desmarcar. Os pendentes já vêm marcados, e marcar um arquivo já transcrito faz ele ser refeito. Depois clique em **Transcrever**.
+4. Clique nos arquivos para marcá-los (tudo começa desmarcado). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
+5. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos e o que estava em andamento é descartado.
 
 Na primeira execução o modelo é baixado (~1,5 GB), uma única vez.
 

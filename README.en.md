@@ -30,8 +30,8 @@ Just pick the folder with your recordings and tick which files to transcribe (or
 
 - **Privacy**: uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (OpenAI's Whisper reimplemented on CTranslate2) right on your machine.
 - **GPU with automatic fallback**: tries the NVIDIA GPU (`large-v3-turbo` model) and checks it with a real test run. If CUDA fails, it falls back to the CPU (`medium` model) on its own.
-- **Simple interface** built with Tkinter: pick a folder, tick the files (all, none or only pending ones), follow the progress and open the results. Transcription runs on a background thread, so the window never freezes.
-- **Resumable**: files that already have a transcript start unticked (and are skipped by the command line). Output is written to `.parcial` files and only renamed at the end, so an interrupted run never leaves a half-finished transcript that looks complete.
+- **Simple interface** built with Tkinter: pick a folder, filter by name, tick the files (all, none or only pending ones), see the total size selected, follow the progress and cancel at any time. Transcription runs on a background thread, so the window never freezes.
+- **Resumable**: the list shows what has already been transcribed, and the command line skips those files. Output is written to `.parcial` files and only renamed at the end, so an interrupted run never leaves a half-finished transcript that looks complete.
 - **Fast**: voice activity detection (VAD) skips silence. On a GTX 1650 (4 GB), about 2 hours of meetings took about 13 minutes.
 
 ## Requirements
@@ -50,7 +50,8 @@ You don't need to install ffmpeg: audio is read straight from the video file.
    ```
 2. In the `transcricao-simples` folder, double-click **`instalar.bat`**. It installs the dependencies and, if it finds an NVIDIA GPU, CUDA support as well.
 3. Double-click **`iniciar.bat`** and choose the folder with your recordings.
-4. Click files in the list to tick or untick them. Pending ones come pre-ticked, and ticking a file that was already transcribed redoes it. Then click **Transcrever** (Transcribe).
+4. Click files to tick them (everything starts unticked). Use **Filtrar por nome** (filter by name) to find a file; the **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** (tick all / untick all / tick pending) buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
+5. Click **Transcrever** (Transcribe). **Cancelar** (Cancel), or closing the window, stops the run: finished files are kept and the one in progress is discarded.
 
 The model (~1.5 GB) is downloaded on the first run, only once.
 
