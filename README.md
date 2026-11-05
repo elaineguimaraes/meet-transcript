@@ -4,7 +4,7 @@
 
 Transcrição automática de gravações de reunião feitas no **OBS Studio**, de **mensagens de voz do WhatsApp** ou de qualquer vídeo/áudio, rodando **100% local**: nenhum áudio sai do seu computador e não há custo de API.
 
-Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (ou todos). Para cada um são gerados um `.txt` com marcação de tempo e uma legenda `.srt`.
+Basta escolher a pasta com as gravações e marcar quais arquivos transcrever (ou todos). Para cada um é gerado um `.txt` com marcação de tempo, na subpasta `transcrições` (dentro da pasta das gravações).
 
 **Formatos aceitos:** MKV, MP4, MOV, FLV, WEBM (vídeo) e M4A, MP3, WAV, OGG, OPUS (áudio, inclusive mensagens de voz do WhatsApp).
 
@@ -37,7 +37,7 @@ Extraia o `.zip` e dê dois cliques em **`Meet Transcript.exe`**. Não precisa d
 
 1. Clique em **Escolher...** e selecione a pasta com as gravações. Na próxima vez, o programa já abre nessa pasta.
 2. Clique nos arquivos para marcá-los (tudo começa desmarcado). A lista mostra a data da última modificação de cada arquivo; a lista começa pelos mais recentes; clique no título **Arquivo** ou **Modificado em** para mudar a ordem (outro clique inverte). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
-3. Para ter tudo em um arquivo só, marque **Juntar tudo em um único .txt**: as transcrições saem uma depois da outra, na ordem da lista, em `Transcrição única <data e hora>.txt` (sem `.srt`). Desmarcado, cada arquivo ganha seu próprio `.txt` e `.srt`.
+3. Para ter tudo em um arquivo só, marque **Juntar tudo em um único .txt**: as transcrições saem uma depois da outra, na ordem da lista, em `Transcrição única <data e hora>.txt`. Desmarcado, cada arquivo ganha seu próprio `.txt`.
 4. Em **Idioma da fala**, deixe **Automático** ou fixe o idioma da reunião. Atenção: fixar o idioma errado faz o modelo *traduzir* a fala.
 5. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos (no `.txt` único, se essa opção estiver marcada) e o que estava em andamento é descartado.
 

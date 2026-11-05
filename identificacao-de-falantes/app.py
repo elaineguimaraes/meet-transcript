@@ -257,7 +257,7 @@ class App(tk.Tk):
                 info = video.stat()
                 self.tamanhos[str(video)] = info.st_size
                 self.datas[str(video)] = info.st_mtime
-                if video.with_suffix(".txt").exists():
+                if self.transcritor.ja_transcrito(video):
                     self.feitos.add(str(video))
             if not self.videos:
                 self._escrever(t("nenhum_video", pasta=pasta))
@@ -372,14 +372,14 @@ class App(tk.Tk):
         if self.juntar.get():
             # Nome com data e hora: nunca sobrescreve um .txt único anterior.
             nome = f"{t('nome_unico')} {time.strftime('%Y-%m-%d %H.%M.%S')}.txt"
-            unico = videos[0].parent / nome
+            unico = self.transcritor.saida(videos[0]).parent / nome
         else:
             refazer = [v for v in videos if str(v) in self.feitos]
             if refazer and not messagebox.askokcancel("Meet Transcript", t("confirma_refazer", n=len(refazer))):
                 return
 
         # Para o aviso no fim: o .txt único ou o .txt de cada arquivo.
-        self.gerados = [unico] if unico else [v.with_suffix(".txt") for v in videos]
+        self.gerados = [unico] if unico else [self.transcritor.saida(v).with_suffix(".txt") for v in videos]
         self.cancelar.clear()
         for botao in (self.botao_escolher, *self.botoes_selecao, self.caixa_juntar):
             botao.configure(state="disabled")
@@ -400,8 +400,8 @@ class App(tk.Tk):
         self.botao_cancelar.configure(state="disabled")
         self._status("cancelando")
 
-    def _abrir_pasta(self) -> None:
-        pasta = self.pasta.get().strip().strip('"')
+    def _abrir_pasta(self, pasta: Path | str | None = None) -> None:
+        pasta = str(pasta or self.pasta.get().strip().strip('"'))
         if not pasta or not Path(pasta).is_dir():
             return
         if os.name == "nt":
@@ -509,7 +509,7 @@ class App(tk.Tk):
             texto = t("aviso_varios", n=len(gerados), pasta=pasta)
         self._escrever(texto)
         if messagebox.askyesno("Meet Transcript", texto + "\n\n" + t("pergunta_abrir")):
-            self._abrir_pasta()
+            self._abrir_pasta(pasta)
 
 
 def main() -> None:

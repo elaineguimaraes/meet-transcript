@@ -14,10 +14,9 @@ HOW TO USE
    meeting (giving the number makes speaker separation more accurate).
 5. Click "Transcribe".
 
-Next to each video you get:
+In the "transcrições" subfolder (inside the recordings folder) you get:
   - a .txt with each line, its timestamp and who said it:
         [00:00:25] Speaker 2: Got it. Go ahead.
-  - a .srt subtitle file, to watch along with the video
 
 Speakers are numbered in order of appearance (Speaker 1 = first to speak).
 The program doesn't know people's names: to turn "Speaker 1" into a name,

@@ -4,7 +4,7 @@
 
 Automatic transcription of meeting recordings made with **OBS Studio**, **WhatsApp voice messages** or any video/audio file, running **100% locally**: no audio ever leaves your computer and there are no API costs.
 
-Just pick the folder with your recordings and tick which files to transcribe (or all of them). Each one gets a timestamped `.txt` and an `.srt` subtitle file.
+Just pick the folder with your recordings and tick which files to transcribe (or all of them). Each one gets a timestamped `.txt`, saved in the `transcrições` subfolder (inside the recordings folder).
 
 **Supported formats:** MKV, MP4, MOV, FLV, WEBM (video) and M4A, MP3, WAV, OGG, OPUS (audio, including WhatsApp voice messages).
 
@@ -39,7 +39,7 @@ Extract the `.zip` and double-click **`Meet Transcript.exe`**. No Python needed.
 
 1. Click **Browse...** and select the folder with your recordings. Next time, the program opens in that folder.
 2. Click files to tick them (everything starts unticked). The list shows each file's last modified date; the list starts with the most recent ones; click the **File** or **Modified** column header to change the order (click again to reverse). Use **Filter by name** to find a file; the **Select all** / **Select none** / **Select pending** buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
-3. To get everything in one file, tick **Combine into a single .txt**: the transcripts come one after the other, in list order, in `Combined transcript <date and time>.txt` (no `.srt`). Unticked, each file gets its own `.txt` and `.srt`.
+3. To get everything in one file, tick **Combine into a single .txt**: the transcripts come one after the other, in list order, in `Combined transcript <date and time>.txt`. Unticked, each file gets its own `.txt`.
 4. In **Spoken language**, keep **Automatic** or fix the meeting's language. Note: fixing the wrong language makes the model *translate* the speech.
 5. Click **Transcribe**. **Cancel**, or closing the window, stops the run: finished files are kept (in the single `.txt`, if that option is ticked) and the one in progress is discarded.
 

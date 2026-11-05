@@ -12,9 +12,8 @@ COMO USAR
    em um arquivo só (útil para vários áudios do WhatsApp).
 4. Clique em "Transcrever".
 
-Ao lado de cada vídeo serão criados:
-  - um .txt com o texto e a marcação de tempo
-  - um .srt (legenda), para assistir junto com o vídeo
+Para cada vídeo é criado um .txt com o texto e a marcação de tempo,
+na subpasta "transcrições" (dentro da pasta das gravações).
 
 Formatos aceitos: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV, OGG e OPUS (áudios do WhatsApp).
 

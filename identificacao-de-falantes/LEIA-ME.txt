@@ -14,10 +14,9 @@ COMO USAR
    reunião (informar o número deixa a separação das vozes mais precisa).
 5. Clique em "Transcrever".
 
-Ao lado de cada vídeo serão criados:
+Na subpasta "transcrições" (dentro da pasta das gravações) é criado:
   - um .txt com as falas, a marcação de tempo e quem falou:
         [00:00:25] Voz 2: Entendi. Pode seguir.
-  - um .srt (legenda), para assistir junto com o vídeo
 
 As vozes são numeradas na ordem em que aparecem (Voz 1 = quem falou
 primeiro). O programa não sabe o nome das pessoas: para trocar "Voz 1"

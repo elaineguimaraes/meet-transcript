@@ -12,9 +12,8 @@ HOW TO USE
    file (handy for several WhatsApp voice messages).
 4. Click "Transcribe".
 
-Next to each video you get:
-  - a .txt with the text and timestamps
-  - a .srt subtitle file, to watch along with the video
+Each video gets a .txt with the text and timestamps, saved in the
+"transcrições" subfolder (inside the recordings folder).
 
 Supported formats: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV, OGG and OPUS (WhatsApp voice messages).
 

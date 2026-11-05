@@ -52,7 +52,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "sem_dependencias": "Dependências não instaladas.",
         # avisos
         "confirma_refazer": "{n} arquivo(s) marcado(s) já têm transcrição e serão refeitos "
-                            "(o .txt e o .srt atuais serão substituídos). Continuar?",
+                            "(o .txt atual será substituído). Continuar?",
         "confirma_sair": "A transcrição será cancelada. Os arquivos já concluídos ficam salvos; "
                          "o que está em andamento é descartado. Sair mesmo assim?",
         # log
@@ -64,7 +64,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "log_dica_instalar": "Rode instalar.bat (ou: py -m pip install -r requirements.txt).",
         "log_erro": "ERRO: {erro}",
         "nenhum_video": "Nenhum vídeo ou áudio em {pasta}",
-        "pulando": "[pulando] {nome}: já existe {txt}",
+        "pulando": "[pulando] {nome}: já transcrito",
         "nada_a_fazer": "Nada a fazer: todos os arquivos já têm transcrição.",
         "carregando_gpu": "Carregando {modelo} na GPU (na primeira vez baixa ~1,6 GB)...",
         "gpu_ok": "GPU ok.",
@@ -129,7 +129,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "erro": "Error.",
         "sem_dependencias": "Dependencies not installed.",
         "confirma_refazer": "{n} selected file(s) already have a transcript and will be redone "
-                            "(the current .txt and .srt will be replaced). Continue?",
+                            "(the current .txt will be replaced). Continue?",
         "confirma_sair": "The transcription will be cancelled. Finished files are kept; "
                          "the one in progress is discarded. Quit anyway?",
         "aviso_um": "{arquivo} was saved in the folder {pasta}",
@@ -140,7 +140,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "log_dica_instalar": "Run instalar.bat (or: py -m pip install -r requirements.txt).",
         "log_erro": "ERROR: {erro}",
         "nenhum_video": "No video or audio files in {pasta}",
-        "pulando": "[skipping] {nome}: {txt} already exists",
+        "pulando": "[skipping] {nome}: already transcribed",
         "nada_a_fazer": "Nothing to do: every file already has a transcript.",
         "carregando_gpu": "Loading {modelo} on the GPU (first run downloads ~1.6 GB)...",
         "gpu_ok": "GPU ok.",

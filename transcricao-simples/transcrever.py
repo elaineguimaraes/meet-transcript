@@ -2,9 +2,8 @@
 Transcrição local de gravações de reunião (OBS Studio ou qualquer vídeo/áudio).
 
 Tudo roda na sua máquina com o faster-whisper: nenhum áudio é enviado para a nuvem.
-Para cada arquivo da pasta são gerados, ao lado dele:
+Para cada arquivo da pasta é gerado, na subpasta "transcrições":
     <nome>.txt  -> texto corrido com marcação de tempo
-    <nome>.srt  -> legenda, para revisar junto com o vídeo
 
 Uso pela linha de comando:
     py transcrever.py "C:\\caminho\\da\\pasta"
@@ -67,6 +66,8 @@ MODELO_CPU, COMPUTE_CPU = "medium", "int8"
 IDIOMA: Optional[str] = None
 # .ogg e .opus: áudios do WhatsApp (mensagens de voz).
 EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav", ".ogg", ".opus"}
+# Subpasta (dentro da pasta das gravações) onde ficam os .txt gerados.
+PASTA_SAIDA = "transcrições"
 
 Log = Callable[[str], None]
 # (indice do arquivo, total de arquivos, fração concluída do arquivo atual)
@@ -87,13 +88,18 @@ def hms(segundos: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-def srt_ts(segundos: float) -> str:
-    ms = int((segundos - int(segundos)) * 1000)
-    return hms(segundos) + f",{ms:03d}"
-
-
 def listar_videos(pasta: Path) -> list[Path]:
     return sorted(p for p in pasta.iterdir() if p.is_file() and p.suffix.lower() in EXTENSOES)
+
+
+def saida(video: Path) -> Path:
+    """Base dos arquivos gerados para o vídeo: <pasta>/transcrições/<nome do vídeo>."""
+    return video.parent / PASTA_SAIDA / video.name
+
+
+def ja_transcrito(video: Path) -> bool:
+    # Versões anteriores salvavam o .txt ao lado do vídeo; esses também contam.
+    return saida(video).with_suffix(".txt").exists() or video.with_suffix(".txt").exists()
 
 
 def _motivo_sem_gpu() -> Optional[str]:
@@ -147,8 +153,8 @@ def transcrever_arquivo(
     idioma: Optional[str] = IDIOMA,
     destino: Optional[Path] = None,
 ) -> None:
-    """Gera <video>.txt e <video>.srt (ou <destino>.txt/.srt, se informado). Escreve em
-    arquivos .parcial e só renomeia no final, para que uma transcrição interrompida não
+    """Gera transcrições/<video>.txt (ou <destino>.txt, se informado). Escreve em um
+    arquivo .parcial e só renomeia no final, para que uma transcrição interrompida não
     seja confundida com uma pronta."""
     # O faster-whisper decodifica o áudio direto do vídeo (via PyAV), já em 16 kHz mono.
     segmentos, info = modelo.transcribe(
@@ -163,27 +169,23 @@ def transcrever_arquivo(
     detectado = t("idioma_auto", codigo=info.language) if idioma is None else idioma
     log(t("duracao", duracao=hms(info.duration), idioma=detectado))
 
-    base = destino or video
-    destino_txt, destino_srt = base.with_suffix(".txt"), base.with_suffix(".srt")
+    base = destino or saida(video)
+    base.parent.mkdir(exist_ok=True)
+    destino_txt = base.with_suffix(".txt")
     parcial_txt = destino_txt.with_name(destino_txt.name + ".parcial")
-    parcial_srt = destino_srt.with_name(destino_srt.name + ".parcial")
 
     try:
-        with parcial_txt.open("w", encoding="utf-8") as txt, parcial_srt.open("w", encoding="utf-8") as srt:
+        with parcial_txt.open("w", encoding="utf-8") as txt:
             txt.write(t("cabecalho", nome=video.name) + "\n\n")
-            for i, seg in enumerate(segmentos, start=1):
+            for seg in segmentos:
                 if cancelado and cancelado():
                     raise Cancelamento()
-                texto = seg.text.strip()
-                txt.write(f"[{hms(seg.start)}] {texto}\n")
-                srt.write(f"{i}\n{srt_ts(seg.start)} --> {srt_ts(seg.end)}\n{texto}\n\n")
+                txt.write(f"[{hms(seg.start)}] {seg.text.strip()}\n")
                 if progresso and info.duration:
                     progresso(min(seg.end / info.duration, 1.0))
-        os.replace(parcial_srt, destino_srt)
         os.replace(parcial_txt, destino_txt)
     finally:
         parcial_txt.unlink(missing_ok=True)
-        parcial_srt.unlink(missing_ok=True)
 
 
 def transcrever_pasta(
@@ -199,10 +201,10 @@ def transcrever_pasta(
         log(t("nenhum_video", pasta=pasta))
         return 0
 
-    pendentes = [v for v in videos if refazer or not v.with_suffix(".txt").exists()]
+    pendentes = [v for v in videos if refazer or not ja_transcrito(v)]
     for video in videos:
         if video not in pendentes:
-            log(t("pulando", nome=video.name, txt=video.with_suffix(".txt").name))
+            log(t("pulando", nome=video.name))
     if not pendentes:
         log(t("nada_a_fazer"))
         return 0
@@ -219,6 +221,7 @@ def _bloco(video: Path, txt: Path) -> str:
 
 
 def _salvar_unico(destino: Path, blocos: list[str]) -> None:
+    destino.parent.mkdir(exist_ok=True)
     parcial = destino.with_name(destino.name + ".parcial")
     try:
         with parcial.open("w", encoding="utf-8") as txt:
@@ -241,7 +244,7 @@ def transcrever_arquivos(
     ficam salvos e o que estava em andamento é descartado.
 
     Com unico, junta as transcrições (na ordem recebida) nesse único .txt em vez de
-    criar um .txt e um .srt ao lado de cada arquivo."""
+    criar um .txt para cada arquivo."""
     if not videos:
         return 0
 
@@ -258,7 +261,7 @@ def transcrever_arquivos(
                 log(f"[{n + 1}/{len(videos)}] {video.name}")
                 inicio = time.monotonic()
                 avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
-                base = Path(temporaria) / video.name if unico else video
+                base = Path(temporaria) / video.name if unico else saida(video)
                 transcrever_arquivo(modelo, video, log, avancar, cancelado, idioma, base)
                 if unico:
                     blocos.append(_bloco(video, base.with_suffix(".txt")))

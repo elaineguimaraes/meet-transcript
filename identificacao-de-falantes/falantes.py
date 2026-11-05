@@ -249,20 +249,6 @@ def numerar_por_ordem(falas: list[Fala]) -> int:
     return len(ordem)
 
 
-def legendas(falas: list[Fala]) -> list[Fala]:
-    """Junta frases seguidas do mesmo falante dentro do mesmo segmento do Whisper:
-    cada resultado vira uma legenda do .srt."""
-    saida: list[Fala] = []
-    for fala in falas:
-        anterior = saida[-1] if saida else None
-        if anterior and anterior.falante == fala.falante and anterior.segmento == fala.segmento:
-            anterior.palavras += fala.palavras
-            anterior.fim = fala.fim
-        else:
-            saida.append(Fala(fala.inicio, fala.fim, fala.falante, fala.segmento, list(fala.palavras)))
-    return saida
-
-
 def paragrafos(falas: list[Fala], duracao_maxima: float = 60.0) -> list[Fala]:
     """Junta frases seguidas do mesmo falante em parágrafos para o .txt. Monólogos
     longos são quebrados a cada ~1 min, para a marcação de tempo continuar útil."""
