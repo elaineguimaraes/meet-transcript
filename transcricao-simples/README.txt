@@ -7,13 +7,16 @@ HOW TO USE
    Português in the top-right corner.)
 2. Click "Browse..." and select the folder with your recordings.
 3. Click the files you want to transcribe (or "Select all").
+   Click the "File" or "Modified" header to sort the list.
+   Tick "Combine into a single .txt" to get every transcript in one
+   file (handy for several WhatsApp voice messages).
 4. Click "Transcribe".
 
 Next to each video you get:
   - a .txt with the text and timestamps
   - a .srt subtitle file, to watch along with the video
 
-Supported formats: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV.
+Supported formats: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV, OGG and OPUS (WhatsApp voice messages).
 
 Spoken language: keep it on "Automatic" (detects the language, including
 meetings that mix languages). If you fix a language, pick the right one:

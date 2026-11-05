@@ -1,0 +1,49 @@
+MEET TRANSCRIPT - transcrição de reuniões com identificação de quem fala
+========================================================================
+
+COMO USAR
+1. Dê dois cliques em "Meet Transcript.exe".
+   (A interface segue o idioma do Windows; dá para trocar entre Português e
+   English no canto superior direito.)
+2. Clique em "Escolher..." e selecione a pasta com as gravações.
+3. Clique nos arquivos que quer transcrever (ou em "Marcar todos").
+   Clique no título "Arquivo" ou "Modificado em" para ordenar a lista.
+   Marque "Juntar tudo em um único .txt" para ter todas as transcrições
+   em um arquivo só (útil para vários áudios do WhatsApp).
+4. Em "Pessoas", deixe "Descobrir" ou escolha quantas pessoas falam na
+   reunião (informar o número deixa a separação das vozes mais precisa).
+5. Clique em "Transcrever".
+
+Ao lado de cada vídeo serão criados:
+  - um .txt com as falas, a marcação de tempo e quem falou:
+        [00:00:25] Voz 2: Entendi. Pode seguir.
+  - um .srt (legenda), para assistir junto com o vídeo
+
+As vozes são numeradas na ordem em que aparecem (Voz 1 = quem falou
+primeiro). O programa não sabe o nome das pessoas: para trocar "Voz 1"
+por um nome, use "Substituir" no Bloco de Notas.
+
+Formatos aceitos: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV, OGG e OPUS (áudios do WhatsApp).
+
+Idioma: deixe em "Automático" (detecta o idioma falado, inclusive reuniões
+que misturam português e inglês). Se fixar um idioma, escolha o certo:
+com o idioma errado, o programa traduz a fala em vez de transcrever.
+
+NA PRIMEIRA VEZ
+- O Windows pode mostrar "O Windows protegeu o computador".
+  Clique em "Mais informações" e depois em "Executar assim mesmo".
+  (O aviso aparece porque o programa não tem assinatura digital paga.)
+- O programa baixa o modelo de transcrição (~1,5 GB), uma única vez.
+  É preciso estar conectado à internet. Depois funciona offline.
+
+PRIVACIDADE
+Tudo roda no seu computador. Nenhum áudio é enviado para a internet.
+
+DICAS
+- Não mova o "Meet Transcript.exe" para fora desta pasta: ele precisa da
+  pasta "_internal" ao lado. Para ter um atalho na área de trabalho, clique
+  com o botão direito no .exe > "Enviar para" > "Área de trabalho (criar atalho)".
+- Com placa de vídeo NVIDIA, use a versão "NVIDIA" do download: é bem mais rápida.
+- Avançado: meet-transcript-cli.exe "C:\pasta" transcreve pela linha de comando.
+
+Código-fonte e ajuda: https://github.com/elaineguimaraes/meet-transcript

@@ -7,13 +7,16 @@ COMO USAR
    English no canto superior direito.)
 2. Clique em "Escolher..." e selecione a pasta com as gravações.
 3. Clique nos arquivos que quer transcrever (ou em "Marcar todos").
+   Clique no título "Arquivo" ou "Modificado em" para ordenar a lista.
+   Marque "Juntar tudo em um único .txt" para ter todas as transcrições
+   em um arquivo só (útil para vários áudios do WhatsApp).
 4. Clique em "Transcrever".
 
 Ao lado de cada vídeo serão criados:
   - um .txt com o texto e a marcação de tempo
   - um .srt (legenda), para assistir junto com o vídeo
 
-Formatos aceitos: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV.
+Formatos aceitos: MKV, MP4, MOV, FLV, WEBM, M4A, MP3, WAV, OGG e OPUS (áudios do WhatsApp).
 
 Idioma: deixe em "Automático" (detecta o idioma falado, inclusive reuniões
 que misturam português e inglês). Se fixar um idioma, escolha o certo:

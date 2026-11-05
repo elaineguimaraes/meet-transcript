@@ -68,6 +68,12 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      # Só o texto da release; os executáveis vêm do job anterior.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/release.md
+          sparse-checkout-cone-mode: false
+
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
@@ -77,19 +83,5 @@ jobs:
           files: |
             MeetTranscript-Windows.zip
             MeetTranscript-Windows-NVIDIA.zip
-          body: |
-            ## Download para Windows
-
-            | Arquivo | Para quem |
-            |---|---|
-            | **MeetTranscript-Windows-NVIDIA.zip** | Computadores com placa de vídeo NVIDIA (bem mais rápido) |
-            | **MeetTranscript-Windows.zip** | Qualquer computador (usa o processador) |
-
-            Não precisa instalar o Python. Extraia o .zip e abra **Meet Transcript.exe**.
-
-            - Na primeira vez, o Windows pode mostrar "O Windows protegeu o computador": clique em **Mais informações → Executar assim mesmo** (o programa não tem assinatura digital paga).
-            - Na primeira transcrição o modelo (~1,5 GB) é baixado uma única vez; depois funciona offline.
-
-            ---
-
-            **English:** extract the zip and open `Meet Transcript.exe`. Pick the NVIDIA build if you have an NVIDIA graphics card. No Python needed.
+          # Texto da release (português e inglês): atualize a cada versão.
+          body_path: .github/release.md

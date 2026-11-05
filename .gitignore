@@ -12,6 +12,8 @@ venv/
 *.m4a
 *.mp3
 *.wav
+*.ogg
+*.opus
 *.txt
 !requirements*.txt
 *.srt

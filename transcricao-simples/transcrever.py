@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Callable, Optional
@@ -64,7 +65,8 @@ MODELO_CPU, COMPUTE_CPU = "medium", "int8"
 # misturam idiomas. Fixar um código ("pt", "en"...) evita erro de detecção quando a
 # reunião é toda em um idioma; mas fixar o idioma errado faz o modelo TRADUZIR a fala.
 IDIOMA: Optional[str] = None
-EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav"}
+# .ogg e .opus: áudios do WhatsApp (mensagens de voz).
+EXTENSOES = {".mkv", ".mp4", ".mov", ".flv", ".webm", ".m4a", ".mp3", ".wav", ".ogg", ".opus"}
 
 Log = Callable[[str], None]
 # (indice do arquivo, total de arquivos, fração concluída do arquivo atual)
@@ -143,9 +145,11 @@ def transcrever_arquivo(
     progresso: Optional[Callable[[float], None]] = None,
     cancelado: Optional[Cancelado] = None,
     idioma: Optional[str] = IDIOMA,
+    destino: Optional[Path] = None,
 ) -> None:
-    """Gera <video>.txt e <video>.srt. Escreve em arquivos .parcial e só renomeia no
-    final, para que uma transcrição interrompida não seja confundida com uma pronta."""
+    """Gera <video>.txt e <video>.srt (ou <destino>.txt/.srt, se informado). Escreve em
+    arquivos .parcial e só renomeia no final, para que uma transcrição interrompida não
+    seja confundida com uma pronta."""
     # O faster-whisper decodifica o áudio direto do vídeo (via PyAV), já em 16 kHz mono.
     segmentos, info = modelo.transcribe(
         str(video),
@@ -159,7 +163,8 @@ def transcrever_arquivo(
     detectado = t("idioma_auto", codigo=info.language) if idioma is None else idioma
     log(t("duracao", duracao=hms(info.duration), idioma=detectado))
 
-    destino_txt, destino_srt = video.with_suffix(".txt"), video.with_suffix(".srt")
+    base = destino or video
+    destino_txt, destino_srt = base.with_suffix(".txt"), base.with_suffix(".srt")
     parcial_txt = destino_txt.with_name(destino_txt.name + ".parcial")
     parcial_srt = destino_srt.with_name(destino_srt.name + ".parcial")
 
@@ -205,29 +210,68 @@ def transcrever_pasta(
     return transcrever_arquivos(pendentes, log, progresso, idioma=idioma)
 
 
+def _bloco(video: Path, txt: Path) -> str:
+    """Trecho de um arquivo dentro do .txt único: título com nome e data, e as falas
+    (sem a linha de cabeçalho do .txt individual)."""
+    corpo = txt.read_text(encoding="utf-8").split("\n", 1)[1].strip()
+    data = time.strftime(t("formato_data"), time.localtime(video.stat().st_mtime))
+    return t("secao", nome=video.name, data=data) + "\n\n" + corpo
+
+
+def _salvar_unico(destino: Path, blocos: list[str]) -> None:
+    parcial = destino.with_name(destino.name + ".parcial")
+    try:
+        with parcial.open("w", encoding="utf-8") as txt:
+            txt.write(t("cabecalho_unico", n=len(blocos)) + "\n\n" + "\n\n".join(blocos) + "\n")
+        os.replace(parcial, destino)
+    finally:
+        parcial.unlink(missing_ok=True)
+
+
 def transcrever_arquivos(
     videos: list[Path],
     log: Log = print,
     progresso: Optional[Progresso] = None,
     cancelado: Optional[Cancelado] = None,
     idioma: Optional[str] = IDIOMA,
+    unico: Optional[Path] = None,
 ) -> int:
     """Transcreve exatamente os arquivos informados (refaz se já houver .txt).
     Se cancelado() retornar True, levanta Cancelamento: os arquivos já concluídos
-    ficam salvos e o que estava em andamento é descartado."""
+    ficam salvos e o que estava em andamento é descartado.
+
+    Com unico, junta as transcrições (na ordem recebida) nesse único .txt em vez de
+    criar um .txt e um .srt ao lado de cada arquivo."""
     if not videos:
         return 0
 
     modelo = carregar_modelo(log)
 
-    for n, video in enumerate(videos):
-        if cancelado and cancelado():
-            raise Cancelamento()
-        log(f"[{n + 1}/{len(videos)}] {video.name}")
-        inicio = time.monotonic()
-        avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
-        transcrever_arquivo(modelo, video, log, avancar, cancelado, idioma)
-        log(t("arquivo_pronto", tempo=hms(time.monotonic() - inicio), arquivo=video.with_suffix(".txt").name))
+    # Com unico, cada arquivo é transcrito numa pasta temporária e o texto vai para
+    # a lista de blocos; assim nenhum .txt individual existente é tocado.
+    blocos: list[str] = []
+    with tempfile.TemporaryDirectory() as temporaria:
+        try:
+            for n, video in enumerate(videos):
+                if cancelado and cancelado():
+                    raise Cancelamento()
+                log(f"[{n + 1}/{len(videos)}] {video.name}")
+                inicio = time.monotonic()
+                avancar = (lambda f, n=n: progresso(n, len(videos), f)) if progresso else None
+                base = Path(temporaria) / video.name if unico else video
+                transcrever_arquivo(modelo, video, log, avancar, cancelado, idioma, base)
+                if unico:
+                    blocos.append(_bloco(video, base.with_suffix(".txt")))
+                pronto = unico or base.with_suffix(".txt")
+                log(t("arquivo_pronto", tempo=hms(time.monotonic() - inicio), arquivo=pronto.name))
+        except Cancelamento:
+            if blocos:  # o que já ficou pronto é salvo no .txt único
+                _salvar_unico(unico, blocos)
+                log(t("unico_parcial", n=len(blocos), arquivo=unico.name))
+            raise
+    if unico:
+        _salvar_unico(unico, blocos)
+        log(t("unico_pronto", arquivo=unico.name))
 
     log(t("concluido"))
     return len(videos)

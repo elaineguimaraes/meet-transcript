@@ -64,17 +64,20 @@ class App(tk.Tk):
         self.transcritor = None                 # módulo transcrever, importado em segundo plano
         self.trabalho: threading.Thread | None = None
         self.cancelar = threading.Event()
-        self.pasta = tk.StringVar()
+        self.pasta = tk.StringVar(value=ler_preferencias().get("pasta", ""))  # última pasta usada
         self.filtro = tk.StringVar()
         self.filtro.trace_add("write", lambda *_: self._mostrar_lista())
+        self.juntar = tk.BooleanVar(value=False)  # um .txt único em vez de um por arquivo
 
         # Arquivos da pasta. As chaves dos conjuntos/dicionários são str(caminho),
         # que também é o iid da linha na lista.
         self.videos: list[Path] = []
         self.visiveis: list[Path] = []          # os que passam no filtro
         self.tamanhos: dict[str, int] = {}
+        self.datas: dict[str, float] = {}       # última modificação (timestamp)
         self.feitos: set[str] = set()           # já têm .txt
         self.marcados: set[str] = set()
+        self.ordem: tuple[str, bool] = ("nome", False)  # (coluna, decrescente)
 
         # Textos que dependem do idioma da interface: (widget, chave) e o status atual,
         # guardados para poder redesenhar tudo quando o idioma é trocado.
@@ -141,16 +144,20 @@ class App(tk.Tk):
         quadro.columnconfigure(0, weight=1)
         quadro.rowconfigure(0, weight=1)
         self.lista = ttk.Treeview(
-            quadro, columns=("marca", "nome", "tamanho", "situacao"), show="headings", selectmode="none"
+            quadro, columns=("marca", "nome", "data", "tamanho", "situacao"), show="headings", selectmode="none"
         )
         for coluna, largura, estica, alinhar in (
             ("marca", 36, False, "center"),
-            ("nome", 320, True, "w"),
+            ("nome", 280, True, "w"),
+            ("data", 130, False, "w"),
             ("tamanho", 80, False, "e"),
             ("situacao", 110, False, "w"),
         ):
             self.lista.heading(coluna, anchor=alinhar)
             self.lista.column(coluna, width=largura, minwidth=largura, stretch=estica, anchor=alinhar)
+        # Clique no título de "Arquivo" ou "Modificado em" ordena; outro clique inverte.
+        for coluna in ("nome", "data"):
+            self.lista.heading(coluna, command=lambda c=coluna: self._ordenar(c))
         self.lista.tag_configure("feito", foreground="#7a7a7a")
         self.lista.tag_configure("marcado", background="#cfe3ff")
         self.lista.bind("<Button-1>", self._clicar_lista)
@@ -170,6 +177,8 @@ class App(tk.Tk):
             botao.pack(side="left", padx=(0 if i == 0 else 6, 0))
         self.contagem = ttk.Label(selecao, text="")
         self.contagem.pack(side="left", padx=(12, 0))
+        self.caixa_juntar = self._rotulo(ttk.Checkbutton(selecao, variable=self.juntar), "juntar")
+        self.caixa_juntar.pack(side="right")
 
         acoes = ttk.Frame(raiz)
         acoes.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(10, 4))
@@ -196,8 +205,7 @@ class App(tk.Tk):
         """Escreve (ou reescreve, ao trocar o idioma) todos os textos da tela."""
         for widget, chave in self._rotulos:
             widget.configure(text=t(chave))
-        for coluna, chave in (("nome", "col_arquivo"), ("tamanho", "col_tamanho"), ("situacao", "col_situacao")):
-            self.lista.heading(coluna, text=t(chave))
+        self._atualizar_cabecalhos()
 
         escolhido = max(self.combo_idioma.current(), 0)
         self.combo_idioma.configure(values=[t(chave) for chave in IDIOMAS_FALA])
@@ -230,14 +238,17 @@ class App(tk.Tk):
 
     def _carregar_lista(self) -> None:
         """(Re)lê a pasta. Tudo começa desmarcado."""
-        self.videos, self.tamanhos, self.feitos, self.marcados = [], {}, set(), set()
+        self.videos, self.tamanhos, self.datas, self.feitos, self.marcados = [], {}, {}, set(), set()
 
         texto = self.pasta.get().strip().strip('"')
         pasta = Path(texto)
         if self.transcritor and texto and pasta.is_dir():
+            salvar_preferencias({**ler_preferencias(), "pasta": str(pasta)})
             self.videos = self.transcritor.listar_videos(pasta)
             for video in self.videos:
-                self.tamanhos[str(video)] = video.stat().st_size
+                info = video.stat()
+                self.tamanhos[str(video)] = info.st_size
+                self.datas[str(video)] = info.st_mtime
                 if video.with_suffix(".txt").exists():
                     self.feitos.add(str(video))
             if not self.videos:
@@ -245,18 +256,44 @@ class App(tk.Tk):
         self._mostrar_lista()
 
     def _mostrar_lista(self) -> None:
-        """Redesenha a lista aplicando o filtro; as marcações são preservadas."""
+        """Redesenha a lista aplicando o filtro e a ordem; as marcações são preservadas."""
         self.lista.delete(*self.lista.get_children())
         termo = self.filtro.get().strip().lower()
-        self.visiveis = [v for v in self.videos if termo in v.name.lower()]
+        self.visiveis = self._ordenados(v for v in self.videos if termo in v.name.lower())
+        formato = t("formato_data")
         for video in self.visiveis:
             iid = str(video)
             self.lista.insert(
                 "", "end", iid=iid, tags=self._tags(iid),
-                values=(CAIXA[iid in self.marcados], video.name, tamanho_legivel(self.tamanhos[iid]),
+                values=(CAIXA[iid in self.marcados], video.name,
+                        time.strftime(formato, time.localtime(self.datas[iid])),
+                        tamanho_legivel(self.tamanhos[iid]),
                         t("feito") if iid in self.feitos else t("pendente")),
             )
         self._atualizar_contagem()
+
+    def _ordenados(self, videos) -> list[Path]:
+        coluna, decrescente = self.ordem
+        chave = (lambda v: self.datas[str(v)]) if coluna == "data" else (lambda v: v.name.lower())
+        return sorted(videos, key=chave, reverse=decrescente)
+
+    def _ordenar(self, coluna: str) -> None:
+        atual, decrescente = self.ordem
+        if coluna == atual:
+            decrescente = not decrescente
+        else:
+            decrescente = coluna == "data"  # por data, começa pelos mais recentes
+        self.ordem = (coluna, decrescente)
+        self._atualizar_cabecalhos()
+        self._mostrar_lista()
+
+    def _atualizar_cabecalhos(self) -> None:
+        """Títulos das colunas, com ▲/▼ na que define a ordem."""
+        atual, decrescente = self.ordem
+        for coluna, chave in (("nome", "col_arquivo"), ("data", "col_data"),
+                              ("tamanho", "col_tamanho"), ("situacao", "col_situacao")):
+            seta = (" ▼" if decrescente else " ▲") if coluna == atual else ""
+            self.lista.heading(coluna, text=t(chave) + seta)
 
     def _tags(self, iid: str) -> tuple[str, ...]:
         return tuple(tag for tag, ativo in (("feito", iid in self.feitos), ("marcado", iid in self.marcados)) if ativo)
@@ -290,7 +327,8 @@ class App(tk.Tk):
         self._atualizar_contagem()
 
     def _selecionados(self) -> list[Path]:
-        return [v for v in self.videos if str(v) in self.marcados]
+        """Na ordem da lista: é a ordem de transcrição e a do .txt único."""
+        return self._ordenados(v for v in self.videos if str(v) in self.marcados)
 
     def _atualizar_contagem(self) -> None:
         n = len(self.marcados)
@@ -310,7 +348,10 @@ class App(tk.Tk):
     # ----------------------------------------------------------------- ações
 
     def _escolher_pasta(self) -> None:
-        escolhida = filedialog.askdirectory(title=t("escolher_titulo"))
+        # Abre na pasta atual (a última usada fica salva); sem ela, na raiz do disco.
+        atual = Path(self.pasta.get().strip().strip('"'))
+        inicial = atual if self.pasta.get().strip() and atual.is_dir() else Path(Path.home().anchor)
+        escolhida = filedialog.askdirectory(title=t("escolher_titulo"), initialdir=str(inicial))
         if escolhida:
             self.pasta.set(str(Path(escolhida)))
             self._carregar_lista()
@@ -319,12 +360,18 @@ class App(tk.Tk):
         videos = self._selecionados()
         if not videos:
             return
-        refazer = [v for v in videos if str(v) in self.feitos]
-        if refazer and not messagebox.askokcancel("Meet Transcript", t("confirma_refazer", n=len(refazer))):
-            return
+        unico = None
+        if self.juntar.get():
+            # Nome com data e hora: nunca sobrescreve um .txt único anterior.
+            nome = f"{t('nome_unico')} {time.strftime('%Y-%m-%d %H.%M.%S')}.txt"
+            unico = videos[0].parent / nome
+        else:
+            refazer = [v for v in videos if str(v) in self.feitos]
+            if refazer and not messagebox.askokcancel("Meet Transcript", t("confirma_refazer", n=len(refazer))):
+                return
 
         self.cancelar.clear()
-        for botao in (self.botao_escolher, *self.botoes_selecao):
+        for botao in (self.botao_escolher, *self.botoes_selecao, self.caixa_juntar):
             botao.configure(state="disabled")
         self.combo_idioma.configure(state="disabled")
         self.botao_cancelar.configure(state="normal")
@@ -332,7 +379,7 @@ class App(tk.Tk):
         self._status("transcrevendo")
         escolhido = IDIOMAS_FALA[self.combo_idioma.current()]
         idioma = None if escolhido == "auto" else escolhido
-        self.trabalho = threading.Thread(target=self._trabalhar, args=(videos, idioma), daemon=True)
+        self.trabalho = threading.Thread(target=self._trabalhar, args=(videos, idioma, unico), daemon=True)
         self.trabalho.start()
         self._atualizar_contagem()
 
@@ -372,7 +419,7 @@ class App(tk.Tk):
         except Exception as erro:  # noqa: BLE001
             self.fila.put(("erro_modulo", f"{erro.__class__.__name__}: {erro}"))
 
-    def _trabalhar(self, videos: list[Path], idioma: str | None) -> None:
+    def _trabalhar(self, videos: list[Path], idioma: str | None, unico: Path | None) -> None:
         try:
             n = self.transcritor.transcrever_arquivos(
                 videos,
@@ -380,6 +427,7 @@ class App(tk.Tk):
                 progresso=lambda i, total, fracao: self.fila.put(("progresso", (i, total, fracao))),
                 cancelado=self.cancelar.is_set,
                 idioma=idioma,
+                unico=unico,
             )
             self.fila.put(("fim", n))
         except self.transcritor.Cancelamento:
@@ -416,7 +464,7 @@ class App(tk.Tk):
 
     def _terminar(self, tipo: str, dado) -> None:
         self.trabalho = None
-        for botao in (self.botao_escolher, *self.botoes_selecao):
+        for botao in (self.botao_escolher, *self.botoes_selecao, self.caixa_juntar):
             botao.configure(state="normal")
         self.combo_idioma.configure(state="readonly")
         self.botao_cancelar.configure(state="disabled")

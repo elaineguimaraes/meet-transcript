@@ -19,6 +19,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         "filtrar": "Filtrar por nome:",
         "limpar": "Limpar",
         "col_arquivo": "Arquivo",
+        "col_data": "Modificado em",
+        "formato_data": "%d/%m/%Y %H:%M",
         "col_tamanho": "Tamanho",
         "col_situacao": "Situação",
         "feito": "já transcrito",
@@ -37,6 +39,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "transcrever_n": "Transcrever ({n})",
         "cancelar": "Cancelar",
         "abrir_pasta": "Abrir pasta",
+        "juntar": "Juntar tudo em um único .txt",
         # situação
         "preparando": "Preparando...",
         "pronto": "Pronto.",
@@ -70,9 +73,14 @@ TEXTOS: dict[str, dict[str, str]] = {
         "idioma_auto": "automático, começa em {codigo}",
         "arquivo_pronto": "    pronto em {tempo} -> {arquivo}",
         "concluido": "Concluído.",
+        "unico_pronto": "Transcrições juntadas em {arquivo}",
+        "unico_parcial": "{n} arquivo(s) concluído(s) foram salvos em {arquivo}",
         "pasta_nao_encontrada": "Pasta não encontrada: {pasta}",
         # arquivo gerado
         "cabecalho": "# Transcrição: {nome}",
+        "nome_unico": "Transcrição única",
+        "cabecalho_unico": "# Transcrição única: {n} arquivo(s)",
+        "secao": "## {nome} (modificado em {data})",
         # linha de comando
         "uso": "Uso:\n"
                "    {prog} \"C:\\pasta\\das\\gravacoes\"\n"
@@ -87,6 +95,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         "filtrar": "Filter by name:",
         "limpar": "Clear",
         "col_arquivo": "File",
+        "col_data": "Modified",
+        "formato_data": "%Y-%m-%d %H:%M",
         "col_tamanho": "Size",
         "col_situacao": "Status",
         "feito": "transcribed",
@@ -105,6 +115,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "transcrever_n": "Transcribe ({n})",
         "cancelar": "Cancel",
         "abrir_pasta": "Open folder",
+        "juntar": "Combine into a single .txt",
         "preparando": "Loading...",
         "pronto": "Ready.",
         "transcrevendo": "Transcribing...",
@@ -135,8 +146,13 @@ TEXTOS: dict[str, dict[str, str]] = {
         "idioma_auto": "automatic, starts in {codigo}",
         "arquivo_pronto": "    done in {tempo} -> {arquivo}",
         "concluido": "Done.",
+        "unico_pronto": "Transcripts combined into {arquivo}",
+        "unico_parcial": "{n} finished file(s) were saved to {arquivo}",
         "pasta_nao_encontrada": "Folder not found: {pasta}",
         "cabecalho": "# Transcript: {nome}",
+        "nome_unico": "Combined transcript",
+        "cabecalho_unico": "# Combined transcript: {n} file(s)",
+        "secao": "## {nome} (modified {data})",
         "uso": "Usage:\n"
                "    {prog} \"C:\\path\\to\\recordings\"\n"
                "    {prog} \"C:\\path\\to\\recordings\" --idioma en\n\n"
