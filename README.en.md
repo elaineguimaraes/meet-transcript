@@ -38,7 +38,7 @@ Extract the `.zip` and double-click **`Meet Transcript.exe`**. No Python needed.
 ## Usage
 
 1. Click **Browse...** and select the folder with your recordings. Next time, the program opens in that folder.
-2. Click files to tick them (everything starts unticked). The list shows each file's last modified date; click the **File** or **Modified** column header to sort (click again to reverse). Use **Filter by name** to find a file; the **Select all** / **Select none** / **Select pending** buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
+2. Click files to tick them (everything starts unticked). The list shows each file's last modified date; the list starts with the most recent ones; click the **File** or **Modified** column header to change the order (click again to reverse). Use **Filter by name** to find a file; the **Select all** / **Select none** / **Select pending** buttons act on the filtered files. Ticking a file that was already transcribed redoes it.
 3. To get everything in one file, tick **Combine into a single .txt**: the transcripts come one after the other, in list order, in `Combined transcript <date and time>.txt` (no `.srt`). Unticked, each file gets its own `.txt` and `.srt`.
 4. In **Spoken language**, keep **Automatic** or fix the meeting's language. Note: fixing the wrong language makes the model *translate* the speech.
 5. Click **Transcribe**. **Cancel**, or closing the window, stops the run: finished files are kept (in the single `.txt`, if that option is ticked) and the one in progress is discarded.

@@ -58,6 +58,9 @@ TEXTOS: dict[str, dict[str, str]] = {
         "confirma_sair": "A transcrição será cancelada. Os arquivos já concluídos ficam salvos; "
                          "o que está em andamento é descartado. Sair mesmo assim?",
         # log
+        "aviso_um": "O arquivo {arquivo} foi gerado na pasta {pasta}",
+        "aviso_varios": "{n} arquivos .txt foram gerados na pasta {pasta}",
+        "pergunta_abrir": "Abrir a pasta?",
         "log_cancelado": "Cancelado. Os arquivos concluídos foram mantidos; o que estava em andamento foi descartado.",
         "log_erro_modulo": "Erro ao carregar o faster-whisper: {erro}",
         "log_dica_instalar": "Rode instalar.bat (ou: py -m pip install -r requirements.txt).",
@@ -72,6 +75,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "sem_dll": "{dll} não encontrada; para usar a GPU, instale o suporte a CUDA",
         "carregando_cpu": "Carregando {modelo} na CPU (na primeira vez baixa ~1,5 GB)...",
         "baixando_vozes": "Baixando os modelos de identificação de voz (~33 MB, só na primeira vez)...",
+        "lendo_audio": "    lendo o áudio do arquivo (em vídeos longos leva um ou dois minutos)...",
         "identificando_vozes": "    identificando as vozes e transcrevendo...",
         "vozes_encontradas": "    {n} voz(es) identificada(s)",
         "duracao": "    duração {duracao}, idioma: {idioma}, transcrevendo...",
@@ -139,6 +143,9 @@ TEXTOS: dict[str, dict[str, str]] = {
                             "(the current .txt and .srt will be replaced). Continue?",
         "confirma_sair": "The transcription will be cancelled. Finished files are kept; "
                          "the one in progress is discarded. Quit anyway?",
+        "aviso_um": "{arquivo} was saved in the folder {pasta}",
+        "aviso_varios": "{n} .txt files were saved in the folder {pasta}",
+        "pergunta_abrir": "Open the folder?",
         "log_cancelado": "Cancelled. Finished files were kept; the one in progress was discarded.",
         "log_erro_modulo": "Error loading faster-whisper: {erro}",
         "log_dica_instalar": "Run instalar.bat (or: py -m pip install -r requirements.txt).",
@@ -153,6 +160,7 @@ TEXTOS: dict[str, dict[str, str]] = {
         "sem_dll": "{dll} not found; install CUDA support to use the GPU",
         "carregando_cpu": "Loading {modelo} on the CPU (first run downloads ~1.5 GB)...",
         "baixando_vozes": "Downloading the speaker identification models (~33 MB, first run only)...",
+        "lendo_audio": "    reading the audio from the file (long videos take a minute or two)...",
         "identificando_vozes": "    identifying speakers and transcribing...",
         "vozes_encontradas": "    {n} speaker(s) identified",
         "duracao": "    duration {duracao}, language: {idioma}, transcribing...",

@@ -77,7 +77,7 @@ class App(tk.Tk):
         self.datas: dict[str, float] = {}       # última modificação (timestamp)
         self.feitos: set[str] = set()           # já têm .txt
         self.marcados: set[str] = set()
-        self.ordem: tuple[str, bool] = ("nome", False)  # (coluna, decrescente)
+        self.ordem: tuple[str, bool] = ("data", True)  # (coluna, decrescente): mais recentes primeiro
 
         # Textos que dependem do idioma da interface: (widget, chave) e o status atual,
         # guardados para poder redesenhar tudo quando o idioma é trocado.
@@ -370,6 +370,8 @@ class App(tk.Tk):
             if refazer and not messagebox.askokcancel("Meet Transcript", t("confirma_refazer", n=len(refazer))):
                 return
 
+        # Para o aviso no fim: o .txt único ou o .txt de cada arquivo.
+        self.gerados = [unico] if unico else [v.with_suffix(".txt") for v in videos]
         self.cancelar.clear()
         for botao in (self.botao_escolher, *self.botoes_selecao, self.caixa_juntar):
             botao.configure(state="disabled")
@@ -479,6 +481,21 @@ class App(tk.Tk):
             self._escrever(t("log_erro", erro=dado))
             messagebox.showerror("Meet Transcript", dado)
         self._carregar_lista()  # atualiza a situação de cada arquivo
+        if tipo == "fim" and dado:
+            self._avisar_gerados()
+
+    def _avisar_gerados(self) -> None:
+        gerados = [g for g in self.gerados if g.exists()]
+        if not gerados:
+            return
+        pasta = gerados[0].parent
+        if len(gerados) == 1:
+            texto = t("aviso_um", arquivo=gerados[0].name, pasta=pasta)
+        else:
+            texto = t("aviso_varios", n=len(gerados), pasta=pasta)
+        self._escrever(texto)
+        if messagebox.askyesno("Meet Transcript", texto + "\n\n" + t("pergunta_abrir")):
+            self._abrir_pasta()
 
 
 def main() -> None:

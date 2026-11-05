@@ -202,7 +202,9 @@ def transcrever_arquivo(
     """Gera <video>.txt e <video>.srt (ou <destino>.txt/.srt, se informado) com o
     falante de cada trecho. Escreve em arquivos .parcial e só renomeia no final, para
     que uma transcrição interrompida não seja confundida com uma pronta."""
-    # O áudio é decodificado uma vez (16 kHz mono) e usado pelas duas etapas.
+    # O áudio é decodificado uma vez (16 kHz mono) e usado pelas duas etapas. Em vídeos
+    # longos leva um ou dois minutos sem progresso, por isso o aviso no log.
+    log(t("lendo_audio"))
     audio = decode_audio(str(video), sampling_rate=falantes.TAXA)
 
     fracao = {"texto": 0.0, "vozes": 0.0}

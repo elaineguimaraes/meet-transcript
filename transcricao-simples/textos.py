@@ -56,6 +56,9 @@ TEXTOS: dict[str, dict[str, str]] = {
         "confirma_sair": "A transcrição será cancelada. Os arquivos já concluídos ficam salvos; "
                          "o que está em andamento é descartado. Sair mesmo assim?",
         # log
+        "aviso_um": "O arquivo {arquivo} foi gerado na pasta {pasta}",
+        "aviso_varios": "{n} arquivos .txt foram gerados na pasta {pasta}",
+        "pergunta_abrir": "Abrir a pasta?",
         "log_cancelado": "Cancelado. Os arquivos concluídos foram mantidos; o que estava em andamento foi descartado.",
         "log_erro_modulo": "Erro ao carregar o faster-whisper: {erro}",
         "log_dica_instalar": "Rode instalar.bat (ou: py -m pip install -r requirements.txt).",
@@ -129,6 +132,9 @@ TEXTOS: dict[str, dict[str, str]] = {
                             "(the current .txt and .srt will be replaced). Continue?",
         "confirma_sair": "The transcription will be cancelled. Finished files are kept; "
                          "the one in progress is discarded. Quit anyway?",
+        "aviso_um": "{arquivo} was saved in the folder {pasta}",
+        "aviso_varios": "{n} .txt files were saved in the folder {pasta}",
+        "pergunta_abrir": "Open the folder?",
         "log_cancelado": "Cancelled. Finished files were kept; the one in progress was discarded.",
         "log_erro_modulo": "Error loading faster-whisper: {erro}",
         "log_dica_instalar": "Run instalar.bat (or: py -m pip install -r requirements.txt).",

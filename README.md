@@ -36,7 +36,7 @@ Extraia o `.zip` e dê dois cliques em **`Meet Transcript.exe`**. Não precisa d
 ## Como usar
 
 1. Clique em **Escolher...** e selecione a pasta com as gravações. Na próxima vez, o programa já abre nessa pasta.
-2. Clique nos arquivos para marcá-los (tudo começa desmarcado). A lista mostra a data da última modificação de cada arquivo; clique no título **Arquivo** ou **Modificado em** para ordenar (outro clique inverte a ordem). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
+2. Clique nos arquivos para marcá-los (tudo começa desmarcado). A lista mostra a data da última modificação de cada arquivo; a lista começa pelos mais recentes; clique no título **Arquivo** ou **Modificado em** para mudar a ordem (outro clique inverte). Use **Filtrar por nome** para achar um arquivo; os botões **Marcar todos** / **Desmarcar todos** / **Marcar pendentes** agem sobre os arquivos filtrados. Marcar um arquivo já transcrito faz ele ser refeito.
 3. Para ter tudo em um arquivo só, marque **Juntar tudo em um único .txt**: as transcrições saem uma depois da outra, na ordem da lista, em `Transcrição única <data e hora>.txt` (sem `.srt`). Desmarcado, cada arquivo ganha seu próprio `.txt` e `.srt`.
 4. Em **Idioma da fala**, deixe **Automático** ou fixe o idioma da reunião. Atenção: fixar o idioma errado faz o modelo *traduzir* a fala.
 5. Clique em **Transcrever**. **Cancelar** (ou fechar a janela) interrompe: os arquivos concluídos ficam salvos (no `.txt` único, se essa opção estiver marcada) e o que estava em andamento é descartado.
